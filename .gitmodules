@@ -1,0 +1,3 @@
+[submodule "Kingdomino-For-Queens"]
+	path = Kingdomino-For-Queens
+	url = https://github.com/RuPaulsDataRace/Kingdomino-For-Queens.git
