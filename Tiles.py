@@ -11,15 +11,17 @@ SQUARESET = {
 
 # define tile class
 class Tile:
-    """Each Domino is represented by a 2-square Tile, and has a value.
-    Each square has a suit and a number of crowns.
+    """Each Domino is represented by a 2-square Tile, which has a value and direction.
+    Each square has a number of crowns and a suit. For example, "0wheat" or "2swamp"
+    Possible suits are "forest", "wheat", "grass", "water", "swamp", or "mine".
 
-    Possible suits are listed in the SQUARESET global variable.
+    The value, if not provided, will be calculated using a function that adheres to the valuation of the base cards
+    The direction can be "left", "right", "up", or "down", and defaults to "left".
     """
     
     def __init__(self, terrain1 = None, terrain2 = None, value = None):
         """Each terrain variable is a string of the suit
-        prepended with the number of crowns.
+        prepended with the number of crowns. Ex "0wheat" or "2swamp"
 
         If value is not provided, it is calculated"""
         
@@ -39,6 +41,7 @@ class Tile:
         self.suit2 = tile2[1:]
         self.crown1 = int(tile1[0])
         self.crown2 = int(tile2[0])
+        self.direction = "left"
 
         #calculate value (if value provided, use that instead).
         self.value = self.calculate_value(value)
@@ -46,6 +49,9 @@ class Tile:
 
     def __str__(self):
         return ("[" + self.terrain1 + "|" + self.terrain2 + "]") 
+
+    def print_details(self):
+        print("Tile = " + str(self) + "\n Value = " + str(self.value) + "\n direction = " + self.direction)
 
     def get_square1(self):
         return self.terrain1
@@ -68,6 +74,24 @@ class Tile:
     def get_value(self):
         return self.value
 
+    def _set_value(self, new_value):
+        self.value = new_value
+
+    def get_direction(self):
+        return self.direction
+
+    def rotate(self, spin):
+        """Rotate the card's direction either 'clockwise' or 'counterclockwise'. Default is clockwise.
+
+        Directions cycle from 'left' to 'up' to 'right' to 'down'."""
+        rotate = ['left','up','right','down']
+        if spin == "counterclockwise":
+            mult = -1
+        else:
+            mult = 1
+        self.direction = rotate[(rotate.index(self.direction) + mult) % 4]
+
+
     def calculate_value(self, value = None):
         if value:
             return int(value)
@@ -81,7 +105,7 @@ class Tile:
     def sort_squares(self, terrain1, terrain2):
         "Standardizes order for 2 tiles"
 
-        #If one square has more growns, it should be terrain1
+        #If one square has more crowns, it should be terrain1
         crowns1, crowns2 = terrain1[0], terrain2[0]
         if crowns2 > crowns1:
             return (terrain2, terrain1)
@@ -103,27 +127,58 @@ class Tile:
 
 # define deck class
 class Deck:
-    def __init__(self, random = True, deck = None):
+    def __init__(self, standard = False, deck = None):
+        """
+        A deck is a list of kingdomino Tile objects.
+        It has standard deck operations, such as dealing and shuffling.
 
+        Calling Deck with no parameters will return a deck of randomly generated tiles.
+        To use the standard deck of tiles, pass (standard = True).
+        To use a specific deck, pass (deck = [list_of_tiles])
+        """
         if deck:
             self.deck = deck
-        elif random:
-            pass
-        else:
+        elif standard:
             self.deck = self._standard_deck()
+        else:
+            self.deck = self._random_deck()
             
     def _standard_deck(self):
         """Generates the standard deck for KingDomino, courtesy of
         https://github.com/RuPaulsDataRace/Kingdomino-For-Queens
         """
         standeck = []
-        f = open("./Kingdomino-For-Queens/kingdomino.csv", "r")
-        lines = f.readlines()
+        with open("./Kingdomino-For-Queens/kingdomino.csv", "r") as f:
+            lines = f.readlines()
         dominos = [d.split(",") for d in lines[1:]]
         for dom in dominos:
             tile = Tile(dom[7], dom[8][:-1], dom[0])
             standeck.append(tile)
         return standeck
+
+    def _random_deck(self):
+        squares = []
+        #Iterate through SQUARESET to create all possible squares
+        for suit in SQUARESET:
+            for crowns in [0,1,2,3]:
+                for n in range(SQUARESET[suit][crowns]):
+                    squares.append(str(crowns) + suit)
+        assert len(squares) % 2 == 0, "Can't have an odd number of squares. Did you modify SQUARESET?"
+        random.shuffle(squares)
+        #Randomly combine pairs of squares into a tile.
+        randeck = []
+        while len(squares) != 0:
+            t1, t2 = squares.pop(), squares.pop()
+            tile = Tile(t1, t2)
+            randeck.append(tile)
+        #Standardize the values of the tiles
+        valuedeck = sorted(randeck, key = Tile.get_value)
+        for c in range(len(valuedeck)):
+            valuedeck[c]._set_value(c+1)
+        return randeck
+    #create a list of all possible squares.
+    #randomly, create tiles with pairs of these and append them to a deck.
+    #return the deck
 
     def contains(self, tile):
         """Returns wheather an equivalent tile appears in deck

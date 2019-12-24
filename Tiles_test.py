@@ -13,12 +13,24 @@ class TestTile(unittest.TestCase):
         self.assertEqual(t.get_suit1(),"forest")
         self.assertEqual(t.get_crowns2(),0)
         self.assertEqual(t.get_crowns1(),1)
+        self.assertEqual(t.get_direction(),"left")
 
     def test_create_invalid(self):
         """Testing that Tile class cannot accept invalid tile inputs"""
         self.assertRaises(AssertionError, Tile, "wheat", "0grass")
         self.assertRaises(AssertionError, Tile, "1wheat", "3grass")
         self.assertRaises(ValueError, Tile, "1wheat")
+
+    def test_rotate(self):
+        t = Tile("0wheat","1forest")
+        self.assertEqual(t.get_direction(),"left")
+        t.rotate("clockwise")
+        self.assertEqual(t.get_direction(),"up")
+        t.rotate("counterclockwise")
+        t.rotate("counterclockwise")
+        self.assertEqual(t.get_direction(),"down")
+        t.rotate("counterclockwise")
+        self.assertEqual(t.get_direction(),"right")
 
     def test_print(self):
         """Testing that the print statement works"""
@@ -58,7 +70,7 @@ class TestTile(unittest.TestCase):
         self.assertEqual(t1.get_value(), t9.get_value(), "Identical tile has same value")
 
         #random_check on standard tiles
-        d = Deck(False)
+        d = Deck(True)
         d.shuffle()
         for n in range(10):
             t1, t2 = d.deal_card(), d.deal_card()
@@ -85,13 +97,22 @@ class TestDeck(unittest.TestCase):
         self.assertFalse(d.contains(t7), "Passing a Deck (for testing purpose) to Deck")
     
     def test_standard_deck(self):
-        d = Deck(False)
+        d = Deck(True)
         t1 = Tile("0wheat","0wheat",1)
         self.assertTrue(d.contains(t1), "Deck contains standard Tile #1")
         t2 = Tile("1wheat","0grass",21)
         self.assertTrue(d.contains(t2), "Deck contains standard Tile #21")
         t3 = Tile("0wheat","3mine",48)
         self.assertTrue(d.contains(t3), "Deck contains standard Tile #48")
-        
+
+    def test_random_deck(self):
+        try:
+            d = Deck()
+            d = Deck(False)
+        except:
+            self.fail("Failed to create a random deck")
+        #Test that there are 48 numbered cards (with no repeat numbers)
+        self.assertEqual(sorted([c.get_value() for c in d.deck]), [n+1 for n in range(48)])
+
 #suite = unittest.TestLoader().loadTestsFromTestCase(TestStringMethods)
 #unittest.TextTestRunner(verbosity=2).run(suite)
