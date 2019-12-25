@@ -1,28 +1,31 @@
 import unittest
 import random
-from Tiles import Tile, Deck
+from Tiles import Tile, Deck, Square
 from Tiles import SQUARESET
 
 class TestTile(unittest.TestCase):
     def test_get(self):
-        """Testiing the get methods for Tile Class"""
-        t = Tile("0wheat","1forest")
-        self.assertEqual(t.get_square2(),"0wheat")
-        self.assertEqual(t.get_square1(),"1forest")
-        self.assertEqual(t.get_suit2(),"wheat")
-        self.assertEqual(t.get_suit1(),"forest")
-        self.assertEqual(t.get_crowns2(),0)
-        self.assertEqual(t.get_crowns1(),1)
+        """Testing the get methods for Tile Class"""
+        s1, s2 = Square("wheat", 0), Square("forest", 1)
+        t = Tile(s1,s2)
+        self.assertEqual(str(t.get_square2()),"0wheat")
+        self.assertEqual(str(t.get_square1()),"1forest")
+        self.assertEqual(t.square2.get_terrain(),"wheat")
+        self.assertEqual(t.square1.get_terrain(),"forest")
+        self.assertEqual(t.square2.get_crowns(),0)
+        self.assertEqual(t.square1.get_crowns(),1)
         self.assertEqual(t.get_direction(),"left")
 
     def test_create_invalid(self):
         """Testing that Tile class cannot accept invalid tile inputs"""
-        self.assertRaises(AssertionError, Tile, "wheat", "0grass")
-        self.assertRaises(AssertionError, Tile, "1wheat", "3grass")
-        self.assertRaises(ValueError, Tile, "1wheat")
+        self.assertRaises(AssertionError, Square, "gras", 1)
+        self.assertRaises(AssertionError, Square, "grass", 3)
+        sq = Square("grass", 1)
+        self.assertRaises(ValueError, Tile, sq)
 
     def test_rotate(self):
-        t = Tile("0wheat","1forest")
+        s1, s2 = Square("wheat", 0), Square("forest", 1)
+        t = Tile(s1,s2)
         self.assertEqual(t.get_direction(),"left")
         t.rotate("clockwise")
         self.assertEqual(t.get_direction(),"up")
@@ -34,39 +37,53 @@ class TestTile(unittest.TestCase):
 
     def test_print(self):
         """Testing that the print statement works"""
-        t1 = Tile("0wheat","0forest")
+        s1, s2 = Square("wheat", 0), Square("forest", 0)
+        t1 = Tile(s1,s2)
         self.assertEqual(str(t1), "[0wheat|0forest]")
-        t2 = Tile("2swamp","0mine")
+        s1, s2 = Square("swamp", 2), Square("mine", 0)
+        t2 = Tile(s1,s2)
         self.assertEqual(str(t2),"[2swamp|0mine]")
 
     def test_sort_squares(self):
-        t1 = Tile("0wheat", "1grass")
+        s1, s2 = Square("wheat", 0), Square("grass", 1)
+        t1 = Tile(s1, s2)
         self.assertEqual(str(t1), "[1grass|0wheat]", "Crowns should be t1")
-        t2 = Tile("0forest","0wheat")
+        s1, s2 = Square("forest", 0), Square("wheat", 0)
+        t2 = Tile(s1, s2)
         self.assertEqual(str(t2), "[0wheat|0forest]", "wheat is before forest")
 
     def test_calculate_value(self):
         #mono-suit tiles, no crowns
-        t1 = Tile("0grass","0grass")
-        t2 = Tile("0wheat","0water")
+        s1, s2= Square("grass", 0), Square("grass", 0)
+        t1 = Tile(s1, s2)
+        s3, s4 = Square("wheat", 0), Square("water", 0)
+        t2 = Tile(s3, s4)
+
         self.assertGreater(t2.get_value(), t1.get_value(), "Mono-tiles are lowest")
-        t3 = Tile("0forest","0forest")
+        s5, s6 = Square("forest", 0), Square("forest", 0)
+        t3 = Tile(s5, s6)
         self.assertGreater(t1.get_value(), t3.get_value(), "Mono-tiles are ordered")
 
         #crowns
-        t4 = Tile("1wheat", "0forest")
+        s7, s8 = Square("wheat", 1), Square("forest", 0)
+        t4 = Tile(s7, s8)
         self.assertGreater(t4.get_value(), t1.get_value(), "Crowns are greater")
-        t5 = Tile("2swamp","0forest")
-        t6 = Tile("3mine","0water")
-        self.assertGreater(t6.get_value(), t4.get_value(), "More growns are greater")
+        s9, s10 = Square("swamp", 2), Square("forest", 0)
+        t5 = Tile(s9, s10)
+        s11, s12 = Square("mine", 3), Square("water", 0)
+        t6 = Tile(s11, s12)
+        self.assertGreater(t6.get_value(), t4.get_value(), "More crowns are greater")
         self.assertGreater(t6.get_value(), t5.get_value(), "More crowns are greater")
-        t7 = Tile("2swamp","0water")
-        t8 = Tile("2grass","0swamp")
+        s13, s14 = Square("swamp", 2), Square("water", 0)
+        t7 = Tile(s13, s14)
+        s15, s16 = Square("grass", 2), Square("swamp", 0)
+        t8 = Tile(s15, s16)
         self.assertGreater(t7.get_value(), t5.get_value(), "Order within crowns works")
         self.assertGreater(t7.get_value(), t8.get_value(), "Order within crowns works")
 
         #same tile, same value
-        t9 = Tile("0grass","0grass")
+        s17, s18 = Square("grass", 0), Square("grass", 0)
+        t9 = Tile(s17, s18)
         self.assertEqual(t1.get_value(), t9.get_value(), "Identical tile has same value")
 
         #random_check on standard tiles
@@ -87,27 +104,32 @@ class TestTile(unittest.TestCase):
 
 class TestDeck(unittest.TestCase):
     def test_test_deck(self):
-        t4 = Tile("0wheat","0forest")
-        t5 = Tile("2swamp","0mine")
-        d = Deck(deck = [t4, t5])
-        t6 = Tile("2swamp","0mine")
-        t7 = Tile("2swamp","1mine")
-        self.assertTrue(d.contains(t5), "Passing a Deck (for testing purpose) to Deck")
-        self.assertTrue(d.contains(t6), "Passing a Deck (for testing purpose) to Deck")
-        self.assertFalse(d.contains(t7), "Passing a Deck (for testing purpose) to Deck")
+        s13, s14 = Square("swamp", 2), Square("water", 0)
+        t7 = Tile(s13, s14)
+        s15, s16 = Square("grass", 2), Square("swamp", 0)
+        t8 = Tile(s15, s16)
+        d = Deck(deck = [t7, t8])
+        s15, s16 = Square("grass", 2), Square("swamp", 0)
+        t9 = Tile(s15, s16)
+        s15, s16 = Square("grass", 2), Square("swamp", 1)
+        t10 = Tile(s15, s16)
+
+        self.assertTrue(d.contains(t7), "Passing a Deck (for testing purpose) to Deck")
+        self.assertTrue(d.contains(t9), "Passing a Deck (for testing purpose) to Deck")
+        self.assertFalse(d.contains(t10), "Passing a Deck (for testing purpose) to Deck")
     
     def test_standard_deck(self):
         d = Deck(True)
-        t1 = Tile("0wheat","0wheat",1)
-        self.assertTrue(d.contains(t1), "Deck contains standard Tile #1")
-        t2 = Tile("1wheat","0grass",21)
-        self.assertTrue(d.contains(t2), "Deck contains standard Tile #21")
-        t3 = Tile("0wheat","3mine",48)
-        self.assertTrue(d.contains(t3), "Deck contains standard Tile #48")
+        s13, s14 = Square("wheat", 0), Square("wheat", 0)
+        t7 = Tile(s13, s14, 1)
+        s15, s16 = Square("wheat", 1), Square("grass", 0)
+        t8 = Tile(s15, s16, 21)
+
+        self.assertTrue(d.contains(t7), "Deck contains standard Tile #1")
+        self.assertTrue(d.contains(t8), "Deck contains standard Tile #21")
 
     def test_random_deck(self):
         try:
-            d = Deck()
             d = Deck(False)
         except:
             self.fail("Failed to create a random deck")
