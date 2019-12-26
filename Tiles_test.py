@@ -14,7 +14,7 @@ class TestTile(unittest.TestCase):
         self.assertEqual(t.square1.get_terrain(),"forest")
         self.assertEqual(t.square2.get_crowns(),0)
         self.assertEqual(t.square1.get_crowns(),1)
-        self.assertEqual(t.get_direction(),"left")
+        self.assertEqual(t.get_direction(),"right")
 
     def test_create_invalid(self):
         """Testing that Tile class cannot accept invalid tile inputs"""
@@ -26,14 +26,14 @@ class TestTile(unittest.TestCase):
     def test_rotate(self):
         s1, s2 = Square("wheat", 0), Square("forest", 1)
         t = Tile(s1,s2)
-        self.assertEqual(t.get_direction(),"left")
+        self.assertEqual(t.get_direction(),"right")
         t.rotate("clockwise")
-        self.assertEqual(t.get_direction(),"up")
-        t.rotate("counterclockwise")
-        t.rotate("counterclockwise")
         self.assertEqual(t.get_direction(),"down")
         t.rotate("counterclockwise")
-        self.assertEqual(t.get_direction(),"right")
+        t.rotate("counterclockwise")
+        self.assertEqual(t.get_direction(),"up")
+        t.rotate("counterclockwise")
+        self.assertEqual(t.get_direction(),"left")
 
     def test_print(self):
         """Testing that the print statement works"""
@@ -90,7 +90,7 @@ class TestTile(unittest.TestCase):
         d = Deck(True)
         d.shuffle()
         for n in range(10):
-            t1, t2 = d.deal_card(), d.deal_card()
+            t1, t2 = d.deal_tile(), d.deal_tile()
             v1, v2 =  t1.get_value(), t2.get_value()
             if v1 >= v2:
                 bigger, smaller = t1, t2

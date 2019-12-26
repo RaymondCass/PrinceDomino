@@ -14,7 +14,7 @@ class Square:
     def __init__(self, terrain, crowns):
         assert terrain in SQUARESET, terrain + " not a valid terrain type"
         assert SQUARESET[terrain][int(crowns)] is not 0, (
-                    str(crowns) + "is not a valid number of crowns for" + str(terrain))
+                    str(crowns) + " is not a valid number of crowns for " + str(terrain))
         self.terrain = str(terrain)
         self.crowns = int(crowns)
 
@@ -67,13 +67,17 @@ class Tile:
 
         self.square1 = tile1
         self.square2 = tile2
-        self.direction = "left"
+        self.direction = "right"
 
         # calculate value (if value provided, use that instead).
         self.value = self.calculate_value(value)
 
     def __str__(self):
-        return ("[" + str(self.square1) + "|" + str(self.square2) + "]")
+        return "[" + str(self.square1) + "|" + str(self.square2) + "]"
+
+    def __iter__(self):
+        yield self.square1
+        yield self.square2
 
     def print_details(self):
         print("Tile = " + str(self) + "\n Value = " + str(self.value) + "\n Direction = " + self.direction)
@@ -197,7 +201,7 @@ class Deck:
     def shuffle(self):
         random.shuffle(self.deck)
 
-    def deal_card(self):
+    def deal_tile(self):
         return self.deck.pop()
 
     def __str__(self):
