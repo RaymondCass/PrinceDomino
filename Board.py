@@ -283,8 +283,6 @@ class Board(Grid):
         for row in range(self.grid_height):
             scored_squares.set_full(0, row)
             scored_squares.set_full(-1, row)
-        scored_squares.set_full(self.grid_width // 2, self.grid_height // 2)
-
         # Iterate through all cells in the scored_squares Grid
         for tile in scored_squares:
             if tile[2]: # pass on tiles that have been scored (value = 1)
@@ -303,7 +301,6 @@ class Board(Grid):
 
 
 
-        # TODO Write the scoring method. Using recursion, as in the Zombie Apocalypse sim
 
     def _score_territory(self, col, row, scored_squares):
         """Helper function for score board
@@ -320,17 +317,18 @@ class Board(Grid):
 
         Returns num_connected, crowns, terrain"""
         scored_squares.set_full(col, row)
-        if self.is_empty(col, row):
-            return (1, 1, "empty") # No recursive silliness if the square is empty
+        terrain = self.get_cell_terrain(col, row)
+        if terrain == None or terrain == "wild": # If empty or wild
+            return (1, 0, "empty") # Exit the function
+
         num_connected = 1
         crowns = self.get_cell_crowns(col, row)
-        terrain = self.get_cell_terrain(col, row)
         neighbors = self.four_neighbors(col, row)
         for neighbor in neighbors:         # For unscored, adjacent tiles of the same suit:
             if scored_squares.is_empty(neighbor[0], neighbor[1]):
                 if self.get_cell_terrain(neighbor[0], neighbor[1]) == terrain:
                     # Score it (and all adjacent), and add to the total.
-                    add_connected, add_crowns = self._score_territory(neighbor[0], neighbor[1], scored_squares)
+                    add_connected, add_crowns = self._score_territory(neighbor[0], neighbor[1], scored_squares)[:2]
                     num_connected += add_connected
                     crowns += add_crowns
         return num_connected, crowns, terrain
