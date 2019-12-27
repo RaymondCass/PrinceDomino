@@ -29,7 +29,11 @@ class Square:
 
     @staticmethod
     def is_valid_square(terrain, crowns):
-        return
+        """A method to say whether the provided square could exist
+        (according to SQUARESET)
+
+        TODO Write this (or delete it if I decide I don't need it"""
+        pass
 
     @staticmethod
     def all_squares():
