@@ -261,7 +261,7 @@ class Board(Grid):
             self.edges["top"] -= 1
             self.edges["bottom"] -= 1
 
-    def score_board(self):
+    def score_board(self, center_kingdom = 0, full_kingdom = 0):
         """return the score of the board. Scoring works as follows:
 
         Count up connected regions. Multiply the number of tiles in a connected region
@@ -278,11 +278,14 @@ class Board(Grid):
         # Create a secondary Grid that tracks which tiles I've already scored.
         # The borders are automatically set to 'scored'
         scored_squares = Grid(self.grid_width, self.grid_height)
+        #Handling the top and bottom edges
         scored_squares.grid[0] = [1 for n in range(self.grid_width)]
         scored_squares.grid[-1] = [1 for n in range(self.grid_width)]
+        #Handling the left and right edges
         for row in range(self.grid_height):
             scored_squares.set_full(0, row)
             scored_squares.set_full(-1, row)
+
         # Iterate through all cells in the scored_squares Grid
         for tile in scored_squares:
             if tile[2]: # pass on tiles that have been scored (value = 1)
@@ -294,8 +297,18 @@ class Board(Grid):
             # then continue with the iteration.
             territory_score = num_connected * crowns
             score[terrain] += territory_score
+
+        #add bonus points (if enabled)
+        if center_kingdom:
+            if self.get_cell_terrain(self.grid_center[0],self.grid_center[1]) == 'wild':
+                score["centered"] = 10
+        if full_kingdom:
+            if score["empty"] == 1:
+                score["full"] = 5
+
         # Tally the score
         total_score = sum(score.values())
+
         return total_score, score
 
 

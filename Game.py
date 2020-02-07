@@ -2,9 +2,16 @@ import Board
 import Tiles
 
 
-class Game:
+def Game:
+    """Startup script:
+    How many players?
+    What scoring rules would you like?
+    Randomized deck or standard?
 
+    Passes these along to Table. Table creates the appropriately configured table"""
     pass
+    Table(4,1,0,0)
+    players = input("How many players?")
 
 class Players:
     """Container for:
@@ -58,13 +65,19 @@ class Table:
     """A container for:
     The deck class being used.
     The 4-8 tiles viewable on the table.
-    The primary draw methods for displaying the game
+    The primary Draw methods for displaying the game
     The buttons that a player clicks to rotate the tile
 
     The game board should be pretty static. You only need to refresh when
     A tile is placed, rotated, or a choice is made.
-    """
 
-    pass
+    Also contains the rules for the game.
+    """
+    def __init__(self, players, random_deck = 1, center_kingdom = 0, full_kingdom = 0):
+        pass
 
 # TODO A "turn" is as follows: 1. Player places a tile, 2. Player chooses a tile
+# The Table class contains the GUI needed to interact. Handles visuals and user input.
+
+if __name__ == "__main__":
+    Game()
