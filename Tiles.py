@@ -1,5 +1,5 @@
 """
-This contains the Tile and Deck classes for Peasantdomino.
+This contains the Tile and Deck classes for Princedomino.
 """
 import random
 
@@ -123,7 +123,7 @@ class Tile:
         return value
 
     def sort_squares(self, square1, square2):
-        "Standardizes order for 2 tiles"
+        """Standardizes order for 2 tiles"""
 
         # If one square has more crowns, it should be terrain1
         if square2.get_crowns() > square1.get_crowns():
@@ -148,7 +148,7 @@ class Tile:
 class Deck:
     def __init__(self, standard=False, deck=None):
         """
-        A deck is a list of kingdomino Tile objects.
+        A deck is a list of Kingdomino Tile objects.
         It has standard deck operations, such as dealing and shuffling.
 
         Calling Deck with no parameters will return a deck of randomly generated tiles.
