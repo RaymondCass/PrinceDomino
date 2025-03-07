@@ -67,10 +67,10 @@ class Tile:
             raise ValueError("Must provide two squares as input")
         assert square1 != square2, "Can't use the same square twice"
 
-        tile1, tile2 = self.sort_squares(square1, square2)
+        s1, s2 = self.sort_squares(square1, square2)
 
-        self.square1 = tile1
-        self.square2 = tile2
+        self.square1 = s1
+        self.square2 = s2
         self.direction = "right"
 
         # calculate value (if value provided, use that instead).
@@ -101,14 +101,14 @@ class Tile:
     def get_direction(self):
         return self.direction
 
-    def rotate(self, spin):
+    def rotate(self, spin="clockwise"):
         """Rotate the card's direction either 'clockwise' or 'counterclockwise'. Default is clockwise.
 
         Directions cycle from 'left' to 'up' to 'right' to 'down'."""
         rotate = ['left', 'up', 'right', 'down']
         if spin == "counterclockwise":
             mult = -1
-        else:
+        elif spin == "clockwise":
             mult = 1
         self.direction = rotate[(rotate.index(self.direction) + mult) % 4]
 
@@ -190,7 +190,7 @@ class Deck:
         # Standardize the values of the tiles
         valuedeck = sorted(randeck, key=Tile.get_value)
         for c in range(len(valuedeck)):
-            valuedeck[c]._set_value(c + 1)
+            valuedeck[c]._set_value(c + 1) #Renumber tiles as 1,2,3,etc. retaining relative order
         return randeck
 
     def contains(self, tile):
@@ -206,7 +206,10 @@ class Deck:
         random.shuffle(self.deck)
 
     def deal_tile(self):
-        return self.deck.pop()
+        try:
+            return self.deck.pop()
+        except IndexError:
+            return None
 
     def __str__(self):
         string = " \n".join([str(d) for d in self.deck])

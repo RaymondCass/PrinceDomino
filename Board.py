@@ -1,5 +1,5 @@
 """
-This is for board class for Peasantdomino
+This is for board class for Princedomino
 """
 import Tiles
 
@@ -68,6 +68,7 @@ class Board(Grid):
         self.grid[self.grid_center[0]][self.grid_center[1]] = 'wild'
         self.message = "All's good for now"
         self.edges = {bound: 3 for bound in ["left", "right", "top", "bottom"]}
+        # TODO the edges assumes a 7x7 play space, but should be using the grid height, etc.
 
     def get_cell_terrain(self, col, row):
         """If the cell is a square, returns its terrain type
@@ -102,8 +103,10 @@ class Board(Grid):
         You can pass an upper_bound and/or a lower_bound.
         If this is more extreme, it will be used instead.
 
-        In Peasantdomino, this should not exceed 5. This limit is not
+        In Princedomino, this should not exceed 5. This limit is not
         enforced by this function"""
+        # TODO I don't know what these functions are for, but the edges probably don't make sense.
+        # I probably just need to rethink how I'm computing the board size.
         if not new_bound:
             new_bound = self.grid_center[1]
         return max([new_bound, self.edges["bottom"]]) \
@@ -115,7 +118,7 @@ class Board(Grid):
         You can pass a left_bound and/or a right_bound.
         If this is more extreme, it will be used instead.
 
-        In Peasantdomino, this should not exceed 5. This limit is not
+        In Princedomino, this should not exceed 5. This limit is not
         enforced by this function"""
         if not new_bound:
             new_bound = self.grid_center[0]
@@ -126,6 +129,7 @@ class Board(Grid):
     @staticmethod
     def _square2_coords(col, row, tile):
         """A helper function that returns the coordinates (row, col) of the second square in a tile."""
+        #TODO this function returns misleading information if square2 is passed in as a parameter
         offset = {'left': (-1, 0), 'up': (0, -1), 'right': (1, 0), 'down': (0, 1), }
         direction = tile.get_direction()
         col2, row2 = tuple(map(sum, zip((col, row), offset[direction])))
@@ -190,6 +194,7 @@ class Board(Grid):
         elif (not s1invalid or not s2invalid) \
                 and (s1invalid == 4 or s2invalid == 4):
             # One square is valid, and the other is over an empty space.
+            # TODO But couldn't one square be valid for both these conditions?
             return 1
         else:
             # The tile cannot be placed at the chosen location
@@ -344,6 +349,7 @@ class Board(Grid):
                     add_connected, add_crowns = self._score_territory(neighbor[0], neighbor[1], scored_squares)[:2]
                     num_connected += add_connected
                     crowns += add_crowns
+                    # TODO write a test for this ... I'm not sure if my recursive scorring worked
         return num_connected, crowns, terrain
 
 
