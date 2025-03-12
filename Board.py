@@ -70,6 +70,13 @@ class Board(Grid):
         self.edges = {bound: 3 for bound in ["left", "right", "top", "bottom"]}
         # TODO the edges assumes a 7x7 play space, but should be using the grid height, etc.
 
+    def create_duplicate(self):
+        dup_board = Board(self.grid_height, self.grid_width)
+        dup_board.grid = self.grid
+        dup_board.message = self.message
+        dup_board.edges = self.edges
+        return dup_board
+
     def get_cell_terrain(self, col, row):
         """If the cell is a square, returns its terrain type
         If the cell is 'wild,' return 'wild'
@@ -316,10 +323,6 @@ class Board(Grid):
 
         return total_score, score
 
-
-
-
-
     def _score_territory(self, col, row, scored_squares):
         """Helper function for score board
         Given a specific cell (col, row),
@@ -351,8 +354,6 @@ class Board(Grid):
                     crowns += add_crowns
                     # TODO write a test for this ... I'm not sure if my recursive scorring worked
         return num_connected, crowns, terrain
-
-
 
     def draw(self):
         """Draws the board in one of 4 quadrants"""

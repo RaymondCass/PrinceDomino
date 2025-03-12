@@ -21,8 +21,9 @@ class Game:
         if self.player_count == 2:
             pass #todo halve the deck
         self.table = Table(deck)
-        self.initial_player_order = Player.random_order()
-        self.table.set_current_player_pieces(self.initial_player_order)
+
+        #Randomize the player order for the first turn
+        self.table.set_current_player_pieces(Player.random_order())
 
         #These three parameters define how progressed the game is.
         self.current_round = 0 #put the round logic in the Game class
@@ -31,22 +32,18 @@ class Game:
         self.final_round = 2
         self.game_is_not_over = 1
 
+        self.temp_board = None
+        self.temp_future_player_pieces = None
+
     def __str__(self):
         playstate = ""
         for key, value in self.__dict__.items():
             playstate += f"\n{key}: {value}"
         return playstate + "\n"
 
-    def get_initial_player_order(self):
-        return self.initial_player_order
-
     def get_current_player(self):
-        current_player_id = self.table.get_current_player_pieces()[self.current_tile_id]
-
-        if current_player_id != None:
-            return Player.get_player(current_player_id)
-        else:
-            return None
+        current_player = self.table.get_current_player_pieces()[self.current_tile_id]
+        return current_player
 
     def get_current_tile(self):
         """Returns the current tile
@@ -61,40 +58,53 @@ class Game:
     def get_current_round(self):
         return self.current_round
 
+    def create_save_point(self):
+        """I want this function to create duplicate objects representing the current game state.
+        i.e.
+        A duplicate future market
+        A duplicate copy of the current player's board.
+
+        Whatever changes are made to the game, they can be undone to the most recent save point
+        by calling revert_to_save_point.
+        This will allow for an Undo feature to the start of the current player's turn."""
+        self.temp_board = self.get_current_player().get_board().create_duplicate()
+        self.temp_future_player_pieces = self.table.get_future_player_pieces()
+        return
+
+    def revert_to_save_point(self):
+        """Resets the game state to where it was at the start of the round, if possible"""
+        self.get_current_player().set_board(self.temp_board)
+        self.table.set_future_player_pieces(self.temp_future_player_pieces)
+        return
+
     def next_turn(self):
         """Increments the turn, and returns 1 unless the game is over"""
         self.current_tile_id += 1
-        if self.current_tile_id == 4:
-            self.next_round()
+        if self.current_tile_id == 4: # Check to see whether all 4 tiles have had a turn
+            self._advance_round() # If yes, then advance to the next round.
+        self.create_save_point()
         return self.game_is_not_over
-    #todo returns 0 if the game is over
 
-    def next_round(self):
+    def _advance_round(self):
         self.current_round += 1
         if self.current_round == self.final_round:
             print("This is the start of the last round")
         if self.current_round > self.final_round:
-            print ("The game is over, please stop playing")
             self.game_is_not_over = 0
             return
 
         self.current_tile_id = 0
         self.table.advance_market()
-        c_market = [str(i) for i in self.table.get_current_market()]
-        print(f"Advancing the market... current market is now{c_market}")
-
         self.table.replace_future_market(self.current_round == self.final_round)
         #unless it's the last round
-        f_market = [str(i) for i in self.table.get_future_market()]
-        print(f"Drawing new tiles... future market is now{f_market}")
 
+        #Describe upkeep to the players
+        c_market = [str(i) for i in self.table.get_current_market()]
+        print(f"Advancing the market... current market is now{c_market}")
+        f_market = [str(i) for i in self.table.get_future_player_pieces()]
+        print(f"Drawing new tiles... future market is now{f_market}")
         print(f"Start of round {self.current_round}\n")
 
-
-
-    #pass
-    #Table(4,1,0,0)
-    #players = input("How many players?")
 
 class Player:
     """Container for:
@@ -106,11 +116,7 @@ class Player:
     players = {}
     player_count = 0
 
-
     def __init__(self, player_name, board = None):
-
-        self.current_round_selection = (None, None)
-        self.future_round_selection = [None, None]
 
         #Each player has a unique id.
         self.handle = player_name
@@ -127,10 +133,11 @@ class Player:
 
     @classmethod
     def get_all_players(cls):
-        """Returns the ids of all players"""
+        """Returns all player objects"""
         all_players = []
-        for player_id in cls.players:
-            all_players.append(player_id)
+        print(f'cls.players = {cls.players}, type = {type(cls.players)}')
+        for player_obj in cls.players.values():
+            all_players.append(player_obj)
         return all_players
 
     @classmethod
@@ -140,12 +147,17 @@ class Player:
 
     @classmethod
     def random_order(cls):
-        if cls.player_count == 2:
-            two_player_order = [0, 1, 1 ,0], [1, 0, 0, 1]
-            return random.choice(two_player_order)
         random_order = cls.get_all_players()
         random.shuffle(random_order)
+        if cls.player_count == 2:
+            two_player_order = list(random_order)
+            two_player_order.reverse()
+            random_order += two_player_order #For two players, the order is a "snake." Either 0110, or 1001
         return random_order
+
+    @classmethod
+    def get_player_count(cls):
+        return cls.player_count
 
     def get_handle(self):
         return self.handle
@@ -153,34 +165,13 @@ class Player:
     def get_board(self):
         return self.board
 
-    def get_current_round_selection(self, second=0):
-        """"Returns the id of the tile selected for the current round
-        Pass "1" as the optional parameter to get the 2nd value, in 2-player mode.
-        """
-        return self.current_round_selection[second]
-
-    def get_future_round_selection(self, second=0):
-        """"Returns the id of the tile selected for the future round
-        Pass "1" as the optional parameter to get the 2nd value, in 2-player mode.
-        """
-        return self.future_round_selection[second]
-
-    def set_future_round(self, first_selection = None, second_selection = None):
-        if first_selection:
-            self.future_round_selection[0] = first_selection
-        if second_selection:
-            self.future_round_selection[1] = second_selection
-
-    def advance_round(self):
-        """Makes the present becomes the past, and the future becomes unknown"""
-        self.current_round_selection = self.future_round_selection
-        self.future_round_selection = (None, None)
+    def set_board(self, new_board):
+        """Given a Board object as input, assigns that board to the player."""
+        if type(new_board) == Board.Board:
+            self.board = new_board
 
     def new_game(self):
         pass
-
-
-
 
 
 class Table:
@@ -206,11 +197,20 @@ class Table:
 
         self.replace_future_market()
 
+
+    def __str__(self):
+        playstate = ""
+        for key, value in self.__dict__.items():
+            playstate += f"\n{key}: {value}"
+        return playstate + "\n"
+
     def advance_market(self):
         self.current_market = self.future_market
         #self.current_player_pieces = self.future_player_pieces
+        #todo advance player pieces too
 
     def replace_future_market(self, last_round = 0):
+        print("Im totally replacing the future market right now.")
         self.future_player_pieces = (None, None, None, None)
         if last_round: #On the last round, don't draw new tiles (would probably lead to an empty-deck error)
             self.future_market = (None, None, None, None)
@@ -218,6 +218,7 @@ class Table:
         new_market = [self.deck.deal_tile() for n in range(4)]
         new_market.sort(key=lambda x: x.value) # sort the tiles by their value
         self.future_market = tuple(new_market)
+        print(self.future_market)
         return
 
     def get_current_player_pieces(self):
@@ -228,6 +229,15 @@ class Table:
 
     def get_future_market(self):
         return self.future_market
+
+    def get_future_player_pieces(self):
+        return self.future_player_pieces
+
+    def set_future_player_pieces(self, player_pieces):
+        self.future_player_pieces = player_pieces
+
+    def set_future_market(self, new_future_market):
+        self.future_market = new_future_market
 
     def set_current_player_pieces(self, player_order):
         if len(player_order) == 3:
@@ -240,17 +250,13 @@ class Table:
 
         #deck_type 1 is standard
 
-# TODO A "turn" is as follows: 1. Player places a tile, 2. Player chooses a tile
-# The Table class contains the GUI needed to interact. Handles visuals and user input.
 
-if __name__ == "__main__":
-    Game()
 
 def test_variables():
     global g, p1, p2
     "lets me run some tests"
     g = Game(["Raymond", "Colleen"])
-    p1 = Player.get_player(1)
-    p2 = Player.get_player(2)
+    p1 = Player.get_player(0)
+    p2 = Player.get_player(1)
     return
 

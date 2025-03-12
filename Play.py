@@ -13,9 +13,6 @@ class Play:
         print("Welcome to PrinceDomino!\nI have a few quick questions, then you can play!")
         self.game = None
 
-        #self.player_count = 0
-        #self.player_names = {}
-
         self.gather_starting_information()
         print("Ok, we're ready to play!")
 
@@ -49,8 +46,8 @@ class Play:
     def begin_playing(self):
 
         print("Ok, let's pick a random player to start.\n")
-        first_player = self.game.get_current_player().get_handle()
-        input(f"{first_player} gets to go first! Press any key to begin.")
+        first_player = self.game.get_current_player()
+        input(f"{first_player.get_handle()} gets to go first! Press any key to begin.")
 
         #keep taking turns until the game is over
         game_is_not_over = 1
@@ -68,25 +65,38 @@ class Play:
         # then scoring happens
 
     def take_a_turn(self):
+        current_player = self.game.get_current_player()
+        if not current_player:
+            return #If there is no player, skip the turn
+            #(In a 3-player round, 1 of the 4 turns each round is skipped)
 
-        #
+
         #retrieve a duplicate of the game state from the Game class
         #make changes to that duplicate
 
+
         #A turn is placing the current tile, choosing a new one, then checking to see if it's done.
-        self.place_current_tile()
-        self.choose_new_tile()
+        self.place_current_tile(current_player)
+        self.choose_new_tile(current_player)
 
-
-        #input("Press ENTER to confirm, or U to undo the turn. (U not implemented)")
+        redo_turn = self._get_input_string(
+            "Input 'U' to undo the turn, or press ENTER to end current turn.",
+            1, ["u"], "")
+        if redo_turn == "U":
+            self.game.revert_to_save_point()
+            self.take_a_turn()
+        elif redo_turn == "":
+            return
+        else:
+            print("You pressed something other than enter, try again.")
         # todo undo handling
+        #   returning advances the turn and commits the save.
+        #   or, don't return. Stay in this function and try again.
         # if CONFIRM, kill the old game state, replace with the new one, then return
         # if UNDO, discard the new game state, and start at the top of this function.
         return
 
-
-
-    def place_current_tile(self):
+    def place_current_tile(self, current_player):
         """Options when placing tile:
         To place, specify X, Y coordinate of tile. Format?
         To rotate, press "R" to rotate clockwise
@@ -95,26 +105,24 @@ class Play:
         current_tile = self.game.get_current_tile()
         if not current_tile:
             return
-        current_player = self.game.get_current_player()
-        if current_player:
-            input(f"Ok {current_player.get_handle()}, where/how would you like to place your tile in your grid?")
+        input(f"Ok {current_player.get_handle()}, where/how would you like to place your tile in your grid?")
         # if current tile is None, (probably because it's the first round), skip this step
-        pass
+        return
 
-    def choose_new_tile(self):
-        current_player = self.game.get_current_player()
-        if not current_player:
-            return
+    def choose_new_tile(self, current_player):
+
+
         new_tiles = self.game.get_future_tiles()
-        if new_tiles[0] != None:
-            self._get_input_integer(f"Ok {current_player.get_handle()}, choose a tile (1, 2, 3, or 4):",
-                                1, 4)
-        # if future tile is None (probably because it's the final round), skip it.
-        pass
 
-    #maybe a "turn" function. With optional parameters for first/last, which activated/deactivates
-    #choose new tile or place current tile respectively. And also is a holder for the current state
-    #of the turn, but has the option to reset everything before committing it.
+        print("Available (Future) tiles =")
+        for i in range(len(new_tiles)):
+            print(str(i+1) + ".) " + str(new_tiles[i]))
+        selection = self._get_input_integer(
+            f"Ok {current_player.get_handle()}, choose a tile (1, 2, 3, or 4):",
+            1, 4)
+        #todo pass selection on to the game.
+        return
+
 
     def _get_input_integer(self, prompt, min_value=float("-inf"), max_value=float("inf")):
         """Prompts user for an integer input, enforcing minimum and maximum values"""
@@ -130,18 +138,18 @@ class Play:
                 print("Invalid input!")
 
     def _get_input_string(self, prompt, max_length=10, permitted_strings=[], default=None):
-        """"permitted characters is not case-sensitive for single-letter characters
+        """"All strings are uppercased using .upper. This isn't elegent
         """
         permitted_strings = [i.upper() for i in permitted_strings]
         while True:
             try:
                 usr_input = input(prompt+" ")
                 if usr_input == "" and default is not None:
-                        return default
+                        return default #returns the default parameter, only if it's specified.
                 assert len(usr_input) <= max_length
                 if permitted_strings:
                     if usr_input.upper() in permitted_strings:
-                        return usr_input
+                        return usr_input.upper()
                     else:
                         print("I don't understand that response.")
                 else:
