@@ -1,3 +1,6 @@
+from dataclasses import field
+from time import time_ns
+
 import Game
 import random
 
@@ -12,12 +15,13 @@ class Play:
     def __init__(self):
         print("Welcome to PrinceDomino!\nI have a few quick questions, then you can play!")
         self.game = None
+        self.message = ""
+        self.error_message = ""
 
+        self.setup = True
         self.gather_starting_information()
-        print("Ok, we're ready to play!")
-
-        self.current_round = 0
-        self.final_round = 3 #calculate game length, don't hard-code.
+        print("\nOk, we're ready to play!")
+        self.setup = False
         self.begin_playing()
 
         print("game is over")
@@ -32,20 +36,20 @@ class Play:
 
     def gather_starting_information(self):
         #self.player_count = self._get_input_integer("How many players? (2-4)", 2, 4)
-        player_count = self._get_input_integer("How many players? (2-4)", 2, 4)
-        print("What are your names?")
+        self.message = "How many players?"
+        player_count = self._get_input_integer("(2-4)", 2, 4)
+        self.message = "How should I call you?"
         player_names=[]
         for player in range(player_count):
             player_names.append(self._get_input_string(f"Player {player + 1}:", default=f"Player {player + 1}"))
-        #for player in range(self.player_count):
-        #    self.player_names[player] = self._get_input_string(f"Player {player + 1}:", default=f"Player {player + 1}")
-        input("Enable optional Scoring? (Not yet implemented)")
+        self.message = "Enable optional scoring?"
+        self._get_input_string("(Not yet implemented)")
         self.game = Game.Game(player_names)
         return
 
     def begin_playing(self):
 
-        print("Ok, let's pick a random player to start.\n")
+        print("Ok, let's pick a random player to start...")
         first_player = self.game.get_current_player()
         input(f"{first_player.get_handle()} gets to go first! Press any key to begin.")
 
@@ -54,7 +58,6 @@ class Play:
         while game_is_not_over:
             self.take_a_turn()
             game_is_not_over = self.game.next_turn()
-            print("\n")
         return
 
         # if the end of the turn order has been reached, need to do upkeep.
@@ -76,24 +79,25 @@ class Play:
 
 
         #A turn is placing the current tile, choosing a new one, then checking to see if it's done.
+
+        self.message = f"Ok {current_player.get_handle()}, where/how would you like to place {self.game.get_current_tile()} in your grid?"
         self.place_current_tile(current_player)
+
+        self.message = f"Ok {current_player.get_handle()}, choose the tile you would like from the Future Market"
         self.choose_new_tile(current_player)
 
+        self.message = "Type 'U' to undo the turn, or press ENTER to end the current turn."
         redo_turn = self._get_input_string(
-            "Input 'U' to undo the turn, or press ENTER to end current turn.",
+            "(U, 'ENTER')",
             1, ["u"], "")
         if redo_turn == "U":
             self.game.revert_to_save_point()
+            self.error_message = "Resetting to the start of your turn..."
             self.take_a_turn()
         elif redo_turn == "":
             return
         else:
-            print("You pressed something other than enter, try again.")
-        # todo undo handling
-        #   returning advances the turn and commits the save.
-        #   or, don't return. Stay in this function and try again.
-        # if CONFIRM, kill the old game state, replace with the new one, then return
-        # if UNDO, discard the new game state, and start at the top of this function.
+            self.message = "You pressed something other than enter, try again."
         return
 
     def place_current_tile(self, current_player):
@@ -105,43 +109,99 @@ class Play:
         current_tile = self.game.get_current_tile()
         if not current_tile:
             return
-        input(f"Ok {current_player.get_handle()}, where/how would you like to place your tile in your grid?")
+        self._get_tile_placement(current_player)
         # if current tile is None, (probably because it's the first round), skip this step
+        # ideally this logic would be offloaded to the Game class, but oh well
         return
 
     def choose_new_tile(self, current_player):
+        new_tiles = self.game.table.get_future_market()
+        if not new_tiles[0]:
+            return 0
 
-
-        new_tiles = self.game.get_future_tiles()
-
-        print("Available (Future) tiles =")
-        for i in range(len(new_tiles)):
-            print(str(i+1) + ".) " + str(new_tiles[i]))
         selection = self._get_input_integer(
-            f"Ok {current_player.get_handle()}, choose a tile (1, 2, 3, or 4):",
+            f"(1, 2, 3, or 4)",
             1, 4)
-        #todo pass selection on to the game.
-        return
+        allowed = self.game.choose_new_tile(selection)
+        if not allowed:
+            self.error_message = "That tile has already been chosen. Try again"
+            self.choose_new_tile(current_player)
+        else:
+            return 1
 
+
+    def display_game_state(self):
+        game_visualization = "\n"
+        # Show the round, turn, and player's name
+        if not self.setup: # Only show this info if the setup is complete
+            current_player = self.game.get_current_player()
+            game_visualization += "{0:^80}".format(f"{current_player.get_handle()}'s Turn "
+                                                   f"(Round {self.game.current_round + 1}, "
+                                                   f"Turn {self.game.current_tile_id + 1})")
+            # Add player's board
+            game_visualization += str(current_player.board)[2:]
+
+            #Prep for showing the market row
+            #Build the current tile in its proper rotational order
+            #todo
+
+            #Build a list of the current market and player turns
+            current_tiles = list(self.game.table.get_current_market())
+            current_tiles.insert(0, "Current Market")
+
+            #Build a list of the future market and player selections
+            future_tiles = list(self.game.table.get_future_market())
+            future_tiles.insert(0, "Future Market")
+            #todo player selections
+
+
+            for line_number in range(5): # Zip the market row together
+                l = "\n"
+                l += "{0:^20}".format(f"Number {line_number}")
+        # Shows the current tile in its proper rotational order
+                pass
+
+                #Add Current Market to string
+                l += "{0:<30}".format(str(current_tiles[line_number]))
+
+                #Add Future Market to string
+                if line_number == 0: # Don't include line number for header row
+                    l += "{0:<30}".format(f"{future_tiles[line_number]}")
+                else:
+                    l += "{0:<30}".format(f"{line_number}.) {future_tiles[line_number]}")
+
+                game_visualization += l
+
+        # Shows the message fields
+        if self.error_message != "":
+            game_visualization += f"\nError: {self.error_message}"
+            self.error_message = ""
+        game_visualization += f"\n{self.message}"
+
+        print(game_visualization)
+        return
 
     def _get_input_integer(self, prompt, min_value=float("-inf"), max_value=float("inf")):
         """Prompts user for an integer input, enforcing minimum and maximum values"""
         while True:
+            self.display_game_state()
             try:
                 num = int(input(prompt+" "))
                 if min_value <= num <= max_value:
                     return num
                 else:
-                    print("That number is too big or small.")
+                    self.error_message = "That number is too big or small."
                     continue
             except ValueError:
-                print("Invalid input!")
+                self.error_message = "Invalid input!"
+
 
     def _get_input_string(self, prompt, max_length=10, permitted_strings=[], default=None):
         """"All strings are uppercased using .upper. This isn't elegent
         """
         permitted_strings = [i.upper() for i in permitted_strings]
         while True:
+            self.display_game_state()
             try:
                 usr_input = input(prompt+" ")
                 if usr_input == "" and default is not None:
@@ -151,12 +211,17 @@ class Play:
                     if usr_input.upper() in permitted_strings:
                         return usr_input.upper()
                     else:
-                        print("I don't understand that response.")
+                        self.message = "I don't understand that response."
                 else:
                     return usr_input
             except AssertionError:
-                print(f"Input cannot be longer than {max_length} characters")
+                self.error_message = f"Input cannot be longer than {max_length} characters"
 
+    def _get_tile_placement(self, current_player):
+        while True:
+            self.display_game_state()
+            input(f"Coordinates: ")
+            return
 
 
 if __name__ == "__main__":

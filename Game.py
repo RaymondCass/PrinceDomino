@@ -29,17 +29,20 @@ class Game:
         self.current_round = 0 #put the round logic in the Game class
         self.current_tile_id = 0 #This is 0, 1, 2, or 3 depending on the tile.
             #when it rolls over to 4, it triggers a round advancement (maybe game end?)
+        # todo length of game should depend on deck size
         self.final_round = 2
         self.game_is_not_over = 1
 
         self.temp_board = None
         self.temp_future_player_pieces = None
+        self.create_save_point()
 
     def __str__(self):
         playstate = ""
         for key, value in self.__dict__.items():
             playstate += f"\n{key}: {value}"
         return playstate + "\n"
+
 
     def get_current_player(self):
         current_player = self.table.get_current_player_pieces()[self.current_tile_id]
@@ -52,11 +55,20 @@ class Game:
         current_tile = self.table.get_current_market()[self.current_tile_id]
         return current_tile
 
-    def get_future_tiles(self):
-        return self.table.get_future_market()
-
     def get_current_round(self):
         return self.current_round
+
+
+    def choose_new_tile(self, tile_id):
+        future_order = self.table.get_future_player_pieces()
+        future_order = list(future_order)
+        if not future_order[tile_id-1]: #if no one has chosen that tile
+            # the player successfully chooses the tile
+            future_order[tile_id-1] = self.get_current_player()
+            self.table.set_future_player_pieces(tuple(future_order))
+            return 1
+        else:
+            return 0
 
     def create_save_point(self):
         """I want this function to create duplicate objects representing the current game state.
@@ -67,7 +79,11 @@ class Game:
         Whatever changes are made to the game, they can be undone to the most recent save point
         by calling revert_to_save_point.
         This will allow for an Undo feature to the start of the current player's turn."""
-        self.temp_board = self.get_current_player().get_board().create_duplicate()
+        if self.game_is_not_over == 0:
+            return
+        current_player = self.get_current_player()
+        if current_player:
+            self.temp_board = current_player.get_board().create_duplicate()
         self.temp_future_player_pieces = self.table.get_future_player_pieces()
         return
 
@@ -76,6 +92,7 @@ class Game:
         self.get_current_player().set_board(self.temp_board)
         self.table.set_future_player_pieces(self.temp_future_player_pieces)
         return
+
 
     def next_turn(self):
         """Increments the turn, and returns 1 unless the game is over"""
@@ -94,16 +111,9 @@ class Game:
             return
 
         self.current_tile_id = 0
-        self.table.advance_market()
+        self.table.advance_tiles()
         self.table.replace_future_market(self.current_round == self.final_round)
         #unless it's the last round
-
-        #Describe upkeep to the players
-        c_market = [str(i) for i in self.table.get_current_market()]
-        print(f"Advancing the market... current market is now{c_market}")
-        f_market = [str(i) for i in self.table.get_future_player_pieces()]
-        print(f"Drawing new tiles... future market is now{f_market}")
-        print(f"Start of round {self.current_round}\n")
 
 
 class Player:
@@ -135,7 +145,6 @@ class Player:
     def get_all_players(cls):
         """Returns all player objects"""
         all_players = []
-        print(f'cls.players = {cls.players}, type = {type(cls.players)}')
         for player_obj in cls.players.values():
             all_players.append(player_obj)
         return all_players
@@ -204,13 +213,13 @@ class Table:
             playstate += f"\n{key}: {value}"
         return playstate + "\n"
 
-    def advance_market(self):
+
+    def advance_tiles(self):
         self.current_market = self.future_market
-        #self.current_player_pieces = self.future_player_pieces
-        #todo advance player pieces too
+        self.current_player_pieces = self.future_player_pieces
+
 
     def replace_future_market(self, last_round = 0):
-        print("Im totally replacing the future market right now.")
         self.future_player_pieces = (None, None, None, None)
         if last_round: #On the last round, don't draw new tiles (would probably lead to an empty-deck error)
             self.future_market = (None, None, None, None)
@@ -218,11 +227,7 @@ class Table:
         new_market = [self.deck.deal_tile() for n in range(4)]
         new_market.sort(key=lambda x: x.value) # sort the tiles by their value
         self.future_market = tuple(new_market)
-        print(self.future_market)
         return
-
-    def get_current_player_pieces(self):
-        return self.current_player_pieces
 
     def get_current_market(self):
         return self.current_market
@@ -230,14 +235,12 @@ class Table:
     def get_future_market(self):
         return self.future_market
 
-    def get_future_player_pieces(self):
-        return self.future_player_pieces
-
-    def set_future_player_pieces(self, player_pieces):
-        self.future_player_pieces = player_pieces
-
     def set_future_market(self, new_future_market):
         self.future_market = new_future_market
+
+
+    def get_current_player_pieces(self):
+        return self.current_player_pieces
 
     def set_current_player_pieces(self, player_order):
         if len(player_order) == 3:
@@ -250,12 +253,20 @@ class Table:
 
         #deck_type 1 is standard
 
+    def get_future_player_pieces(self):
+        return self.future_player_pieces
+
+    def set_future_player_pieces(self, player_pieces):
+        self.future_player_pieces = player_pieces
+
+
+
 
 
 def test_variables():
     global g, p1, p2
     "lets me run some tests"
-    g = Game(["Raymond", "Colleen"])
+    g = Game(["Raymond", "Alex"])
     p1 = Player.get_player(0)
     p2 = Player.get_player(1)
     return

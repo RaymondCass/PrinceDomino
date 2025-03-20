@@ -59,6 +59,9 @@ class Grid:
 
 
 class Board(Grid):
+    ALPHABET = ["A", "B", "C", "D", "E", "F", 'G', 'H', 'I', 'J', 'K', 'L',
+                'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W',
+                'X', 'Y', 'Z']
 
     def __init__(self, grid_height=7, grid_width=7):
         """"""
@@ -68,7 +71,39 @@ class Board(Grid):
         self.grid[self.grid_center[0]][self.grid_center[1]] = 'wild'
         self.message = "All's good for now"
         self.edges = {bound: 3 for bound in ["left", "right", "top", "bottom"]}
+
+        self.x_label = self.ALPHABET[:self.grid_width]
+        self.y_label = list(range(self.grid_height+1))[1:]
+        self.y_label.reverse()
         # TODO the edges assumes a 7x7 play space, but should be using the grid height, etc.
+
+    def __str__(self):
+        print_string = ""
+        y_label_copy = list(self.y_label)
+        for row in self.grid:
+            r = str(y_label_copy.pop(0))
+            for value in row:
+                r += "{0:^7}".format(str(value))
+            print_string += "\n\n\n" + r
+        r = "\n\n "
+        for value in self.x_label:
+            r += "{0:^7}".format(str(value))
+        print_string += r
+        return print_string
+
+    def _chess_indexed(self, col, row):
+        """Takes as input coordinates in chess-format
+        returns Grid coordinates that the class can interpret
+
+        For example, in a 7x7 grid,
+        col = A, row = 5 (1 indexed, from bottom left)
+        would return (0, 2) (0 indexed, from top left.
+
+        col = "D", row = 6 --> (3, 1)
+        """
+        true_col = self.x_label.index(col)
+        true_row = self.y_label.index(row)
+        return true_col, true_row
 
     def create_duplicate(self):
         dup_board = Board(self.grid_height, self.grid_width)
@@ -136,17 +171,19 @@ class Board(Grid):
     @staticmethod
     def _square2_coords(col, row, tile):
         """A helper function that returns the coordinates (row, col) of the second square in a tile."""
-        #TODO this function returns misleading information if square2 is passed in as a parameter
         offset = {'left': (-1, 0), 'up': (0, -1), 'right': (1, 0), 'down': (0, 1), }
         direction = tile.get_direction()
         col2, row2 = tuple(map(sum, zip((col, row), offset[direction])))
         return col2, row2
 
-    def set_cell(self, col, row, value):
+    def set_cell(self, col, row, value, chess_indexed = False):
         """This method skips many of the validity checks on placing a tile.
         I recommend using the place_tile method.
         """
         # Update the self.edges dictionary with new bounds
+        if chess_indexed:
+            col, row = self._chess_indexed(col, row)
+
         self.edges["left"] = min([col, self.edges["left"]])
         self.edges["right"] = max([col, self.edges["right"]])
         self.edges["top"] = min([row, self.edges["top"]])
@@ -207,12 +244,14 @@ class Board(Grid):
             # The tile cannot be placed at the chosen location
             return 0
 
-    def place_tile(self, col, row, tile):
+    def place_tile(self, col, row, tile, chess_indexed = False):
         """Checks if the Tile is valid at the location.
         If it is, places each square in the correct location, using set_cell
         Then re-centers the grid.
         """
-        # TODO maybe constrain col, row, so there's no negative input silliness?
+        if chess_indexed:
+            col, row = self._chess_indexed(col, row)
+
         if self.is_tile_valid(col, row, tile):
             square1, square2 = tile
             col2, row2 = self._square2_coords(col, row, tile)
