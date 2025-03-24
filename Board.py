@@ -75,6 +75,10 @@ class Board(Grid):
         self.x_label = self.ALPHABET[:self.grid_width]
         self.y_label = list(range(self.grid_height+1))[1:]
         self.y_label.reverse()
+        self.valid_coordinates = []
+        for y in self.y_label:
+            for x in self.x_label:
+                self.valid_coordinates.append(x+str(y))
         # TODO the edges assumes a 7x7 play space, but should be using the grid height, etc.
 
     def __str__(self):
@@ -102,15 +106,9 @@ class Board(Grid):
         col = "D", row = 6 --> (3, 1)
         """
         true_col = self.x_label.index(col)
-        true_row = self.y_label.index(row)
-        return true_col, true_row
+        true_row = self.y_label.index(int(row))
 
-    def create_duplicate(self):
-        dup_board = Board(self.grid_height, self.grid_width)
-        dup_board.grid = self.grid
-        dup_board.message = self.message
-        dup_board.edges = self.edges
-        return dup_board
+        return true_col, true_row
 
     def get_cell_terrain(self, col, row):
         """If the cell is a square, returns its terrain type

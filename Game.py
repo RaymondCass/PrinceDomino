@@ -1,3 +1,4 @@
+import copy
 import Board
 import Tiles
 import random
@@ -55,9 +56,6 @@ class Game:
         current_tile = self.table.get_current_market()[self.current_tile_id]
         return current_tile
 
-    def get_current_round(self):
-        return self.current_round
-
 
     def choose_new_tile(self, tile_id):
         future_order = self.table.get_future_player_pieces()
@@ -69,6 +67,20 @@ class Game:
             return 1
         else:
             return 0
+
+    def place_new_tile(self, coord):
+        """Attempts to place the current tile at the specified coordinate
+        Current Tile and Current Player are determined by self.current_tile_id.
+
+        Returns (1,"") if the placement was successful
+        Return (0,Error) if the placement was unsuccessful,
+        Where Error is a string explaining why the placement failed.
+        """
+        current_tile, current_player = self.get_current_tile(), self.get_current_player()
+        col, row = coord[:1], coord[1:]
+        current_player.board.place_tile(col, row, current_tile, True)
+        return (1, "")
+        pass
 
     def create_save_point(self):
         """I want this function to create duplicate objects representing the current game state.
@@ -83,7 +95,7 @@ class Game:
             return
         current_player = self.get_current_player()
         if current_player:
-            self.temp_board = current_player.get_board().create_duplicate()
+            self.temp_board = copy.deepcopy(current_player.board)
         self.temp_future_player_pieces = self.table.get_future_player_pieces()
         return
 
@@ -168,11 +180,6 @@ class Player:
     def get_player_count(cls):
         return cls.player_count
 
-    def get_handle(self):
-        return self.handle
-
-    def get_board(self):
-        return self.board
 
     def set_board(self, new_board):
         """Given a Board object as input, assigns that board to the player."""

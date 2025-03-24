@@ -83,8 +83,9 @@ class Tile:
         yield self.square1
         yield self.square2
 
-    def print_details(self):
-        print("Tile = " + str(self) + "\n Value = " + str(self.value) + "\n Direction = " + self.direction)
+    def get_details(self):
+        details = "Tile = " + str(self) + " Value = " + str(self.value) + " Direction = " + self.direction
+        return details
 
     def get_square1(self):
         return self.square1
