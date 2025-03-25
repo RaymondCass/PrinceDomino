@@ -25,8 +25,8 @@ class Play:
         self.setup = False
         self.begin_playing()
 
-        print("game is over")
-        print(self)
+        self.display_scores()
+
 
     def __str__(self):
 
@@ -70,6 +70,8 @@ class Play:
         # then scoring happens
 
     def take_a_turn(self):
+        #todo once 3-player rules are correct, I should be able to remove
+        # a lot of the checks for None players
         current_player = self.game.get_current_player()
         if not current_player:
             return #If there is no player, skip the turn
@@ -91,7 +93,7 @@ class Play:
         self.message = "Type 'U' to undo the turn, or press ENTER to end the current turn."
         redo_turn = self._ask_for_input_string(
             "(U, 'ENTER')",
-            1, ["u"], "")
+            1, ["u", "U"], "")
         if redo_turn == "U":
             self.game.revert_to_save_point()
             self.error_message += "\nResetting to the start of your turn..."
@@ -108,7 +110,6 @@ class Play:
         To rotate, press "R" to rotate clockwise
         To pass, Type "P or "Pass" (only if no move available)
         """
-        #todo there seems to be some glitch with displaying the last turn?
         current_tile = self.game.get_current_tile()
         if not current_tile:
             # if current tile is None, (probably because it's the first round), skip this step
@@ -116,6 +117,8 @@ class Play:
             return
 
         coord = self._ask_for_tile_placement(current_player)
+
+        # Rotation Handling
         if coord == "R":
             current_tile.rotate()
             self.error_message += "\nTile Rotated"
@@ -123,7 +126,16 @@ class Play:
             self.place_current_tile(current_player)
             return 1
 
-        allowed, error = self.game.place_new_tile(coord)
+        # Pass Handling
+        if coord == "P":
+            self.error_message += "\nPassing not yet implemented... but fine, lol"
+            #todo implement passing, don't just allow it whenever
+            return 1
+            self.place_current_tile(current_player)
+            return 1
+
+        allowed, error = self.game.try_to_place_tile(coord)
+        self.error_message += f"{error}"
         if allowed:
             return 1
         else:
@@ -136,7 +148,7 @@ class Play:
         Then, passes the input to the self.Game.
         If the move is invalid, tries again recursively"""
 
-        new_tiles = self.game.table.get_future_market()
+        new_tiles = self.game.table.future_market
         if not new_tiles[0]:
             return 0
 
@@ -149,99 +161,6 @@ class Play:
             self.choose_new_tile(current_player)
         else:
             return 1
-
-
-    def display_game_state(self):
-        game_visualization = "\n"
-        # Show the round, turn, and player's name
-        if not self.setup: # Only show this info if the setup is complete
-            current_player = self.game.get_current_player()
-            game_visualization += "{0:^80}".format(f"{current_player.handle}'s Turn "
-                                                   f"(Round {self.game.current_round + 1}, "
-                                                   f"Turn {self.game.current_tile_id + 1})")
-            # Add player's board
-            game_visualization += str(current_player.board)[2:]
-
-            #Prep for showing the market row
-            #Build the current tile in its proper rotational order
-            current_tile = self._draw_tile(self.game.get_current_tile())
-
-            #Build a list of the current market and player turns
-            current_tiles = list(self.game.table.get_current_market())
-            current_tiles.insert(0, "Current Market")
-            current_players = list(self.game.table.get_current_player_pieces())
-            current_players.insert(0, None)
-
-            #Build a list of the future market and player selections
-            future_tiles = list(self.game.table.get_future_market())
-            future_tiles.insert(0, "Future Market")
-            future_pieces = list(self.game.table.get_future_player_pieces())
-            future_pieces.insert(0, None)
-            #todo player selections
-
-
-            for line_number in range(5): # Zip the market row together
-                l = "\n"
-                l += current_tile[line_number]
-        # Shows the current tile in its proper rotational order
-                pass
-
-                #Add Current Market to string
-                c_player = current_players[line_number]
-                if not c_player:
-                    c_player = ""
-                else:
-                    c_player = f" ({c_player.handle})"
-                cm_string = f"{current_tiles[line_number]}{c_player}"
-                l += "{0:<30}".format(cm_string)
-
-                #Add Future Market to string
-                c_player = future_pieces[line_number]
-                if not c_player:
-                    c_player = ""
-                else:
-                    c_player = f" ({c_player.handle})"
-                if not c_player:
-                    c_player = ""
-                if line_number == 0: # Don't include line number for header row
-                    l += "{0:<30}".format(f"{future_tiles[line_number]}")
-                else:
-                    l += "{0:<30}".format(f"{line_number}.) {future_tiles[line_number]}{c_player}")
-
-                game_visualization += l
-
-        # Shows the message fields
-        if self.error_message != "":
-            game_visualization += f"{self.error_message}"
-            self.error_message = ""
-        game_visualization += f"\n{self.message}"
-
-        print(game_visualization)
-        return
-
-    def _draw_tile(self, tile):
-        """Helper function for display_game_state.
-
-        Returns a list of 5 len(20) strings.
-        string depiction of the Tile object,
-        As a list of 5 len(20) strings."""
-
-        if  isinstance(tile, Tiles.Tile):
-            s1, s2, direction = tile.get_square1(), tile.get_square2(), tile.get_direction()
-            s1, s2 = "*"+str(s1), str(s2)
-            fs1, fs2 = "{:^20}".format(s1), "{:^20}".format(s2)
-            e, d = "{:^20}".format(""), "{:^20}".format("-------")
-            if direction == "right":
-                tile_str = [e,e,"{:^20}".format(f"{s1}|{s2}"),e,e]
-            elif direction == "left":
-                tile_str = [e,e,"{:^20}".format(f"{s2}|{s1}"),e,e]
-            elif direction == "up":
-                tile_str = [e,fs2,d,fs1,e]
-            elif direction == "down":
-                tile_str = [e,fs1,d,fs2,e]
-            return tile_str
-        else:
-            return ["{0:^20}".format("") for row in range(5)]
 
 
     def _ask_for_input_integer(self, prompt, min_value=float("-inf"), max_value=float("inf")):
@@ -295,7 +214,7 @@ class Play:
                 elif drooc in current_player.board.valid_coordinates:
                     return drooc
 
-                elif coord == "R":
+                elif coord == "R" or coord == "P":
                     return coord
                 else:
                     self.error_message += f"\nError: Your input '{coord}' is not a valid coordinate"
@@ -303,6 +222,121 @@ class Play:
             except Exception:
                 traceback.print_exc()
                 self.error_message += "\nError: Invalid input."
+
+
+    def display_game_state(self):
+        game_visualization = "\n"
+        # Show the round, turn, and player's name
+        if not self.setup: # Only show this info if the setup is complete
+            current_player = self.game.get_current_player()
+            game_visualization += "{0:^80}".format(f"{current_player.handle}'s Turn "
+                                                   f"(Round {self.game.current_round }/{self.game.number_of_rounds}, "
+                                                   f"Turn {self.game.current_turn + 1})")
+            # Add player's board
+            game_visualization += str(current_player.board)[2:]
+
+            #Prep for showing the market row
+            #Build the current tile in its proper rotational order
+            current_tile = self._tile_string(self.game.get_current_tile())
+
+            #Build a list of the current market and player turns
+            current_market = list(self.game.table.current_market)
+            current_market.insert(0, "Current Market")
+            current_players = list(self.game.table.current_player_pieces)
+            current_players.insert(0, None)
+
+            #Build a list of the future market and player selections
+            future_market = list(self.game.table.future_market)
+            future_market.insert(0, "Future Market")
+            future_pieces = list(self.game.table.get_future_player_pieces())
+            future_pieces.insert(0, None)
+
+            for line_number in range(len(future_market)): # Zip the market row together
+                l = "\n"
+                l += current_tile[line_number]
+
+                #Add Current Market to string
+                cm_player = current_players[line_number]
+                if line_number == 0:
+                    l += "{0:<30}".format(f"{current_market[line_number]}")
+                else:
+                    if not cm_player:
+                        cm_string = ""
+                    elif self.game.current_turn + 1 == line_number:
+                        cm_string = f"   {str(cm_player.handle)}'s turn"
+                    elif self.game.current_turn + 1 > line_number:
+                        cm_string = ""
+                    else:
+                        cm_string = f"{current_market[line_number]} ({cm_player.handle})"
+                    l += "{0:<30}".format(cm_string)
+
+                #Add Future Market to string
+                fm_player = future_pieces[line_number]
+                if not fm_player:
+                    fm_player = ""
+                else:
+                    fm_player = f" ({fm_player.handle})"
+                #Add line numbers to future markets
+                if line_number == 0: # Don't include line number for header row
+                    l += "{0:<30}".format(f"{future_market[line_number]}")
+                else:
+                    l += "{0:<30}".format(f"{line_number}.) {future_market[line_number]}{fm_player}")
+
+                game_visualization += l
+
+        # Shows the message fields
+        if self.error_message != "":
+            game_visualization += f"{self.error_message}"
+            self.error_message = ""
+        game_visualization += f"\n{self.message}"
+
+        print(game_visualization)
+        return
+
+    def _tile_string(self, tile):
+        """Helper function for display_game_state.
+
+        Returns a list of 5 len(20) strings.
+        string depiction of the Tile object,
+        As a list of 5 len(20) strings."""
+
+        if  isinstance(tile, Tiles.Tile):
+            s1, s2, direction = tile.get_square1(), tile.get_square2(), tile.get_direction()
+            s1, s2 = "*"+str(s1), str(s2)
+            fs1, fs2 = "{:^20}".format(s1), "{:^20}".format(s2)
+            e, d = "{:^20}".format(""), "{:^20}".format("-------")
+            if direction == "right":
+                tile_str = [e,e,"{:^20}".format(f"{s1}|{s2}"),e,e]
+            elif direction == "left":
+                tile_str = [e,e,"{:^20}".format(f"{s2}|{s1}"),e,e]
+            elif direction == "up":
+                tile_str = [e,fs2,d,fs1,e]
+            elif direction == "down":
+                tile_str = [e,fs1,d,fs2,e]
+            return tile_str
+        else:
+            return ["{0:^20}".format("") for row in range(5)]
+
+    def display_scores(self, debug = False):
+        if debug:
+            print(self)
+        game_visualization = "\n\n\ngame is over"
+        scores = self.game.score_boards()
+        winner = max(scores, key=lambda score: scores[score][0])
+        game_visualization += "\nHere are the scores:"
+        for player in scores:
+            player_score = scores[player]
+
+            breakdown = f"{player.handle}'s Total Score = {player_score[0]}\nBreakdown:"
+            for category in player_score[1]:
+                breakdown += f"\n   {category}: {player_score[1][category]}"
+            game_visualization += f"\n\n{breakdown}"
+        game_visualization += f"\n\n{winner.handle} is the winner with a score of {scores[winner][0]}"
+
+
+        print(game_visualization)
+
+        return
 
 
 if __name__ == "__main__":

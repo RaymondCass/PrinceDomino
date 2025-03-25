@@ -13,7 +13,7 @@ SQUARESET = {
 class Square:
     def __init__(self, terrain, crowns):
         assert terrain in SQUARESET, terrain + " not a valid terrain type"
-        assert SQUARESET[terrain][int(crowns)] is not 0, (
+        assert SQUARESET[terrain][int(crowns)] != 0, (
                     str(crowns) + " is not a valid number of crowns for " + str(terrain))
         self.terrain = str(terrain)
         self.crowns = int(crowns)
@@ -23,6 +23,7 @@ class Square:
 
     def get_terrain(self):
         return self.terrain
+
 
     def get_crowns(self):
         return self.crowns
@@ -163,6 +164,9 @@ class Deck:
         else:
             self.deck = self._random_deck()
 
+    def __len__(self):
+        return len(self.deck)
+
     @staticmethod
     def _standard_deck():
         """Generates the standard deck for KingDomino, courtesy of
@@ -206,9 +210,21 @@ class Deck:
     def shuffle(self):
         random.shuffle(self.deck)
 
-    def deal_tile(self):
+    def deal_tile(self, amount = 1):
+        """Returns one object from the top of the deck.
+
+        If an amount other than 1 is specified,
+        Returns that many objects from the top of the deck
+
+        Function returns None if there are not enough cards remaining in the deck to draw amount.
+        """
         try:
-            return self.deck.pop()
+            if amount == 1:
+                return self.deck.pop()
+            deal = []
+            for card in range(amount):
+                deal.append(self.deck.pop())
+            return deal
         except IndexError:
             return None
 

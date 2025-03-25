@@ -189,6 +189,7 @@ class Board(Grid):
         super(Board, self).set_cell(col, row, value)
 
     def is_square_invalid(self, col, row, square):
+        #todo review these entire functions
         """Returns a 0 if the square is valid, and a 1, 2, or 3 if not.
         If not valid, prints a reason why.
 
@@ -198,25 +199,27 @@ class Board(Grid):
                     - (4)No adjacent tile of the same suit or 'wild'
                     """
         if not isinstance(square, Tiles.Square):  # the object is not a square
-            self.message = "You can only place squares on the board. Duh."
+            self.message = "Can only place Square objects on a Board."
             return 1
         elif not self.is_empty(col, row):  # if the cell is not empty
-            self.message = "The cell is not empty, silly!"
+            self.message = "Cannot place a tile on an occupied cell."
             return 2
         elif self.get_width_used(new_bound=col) > 5:
-            self.message = "This would exceed the 5x5 grid (on the left or right)."
+            self.message = "Cannot exceed the 5x5 play space."
             return 3
         elif self.get_height_used(new_bound=row) > 5:
-            self.message = "This would exceed the 5x5 grid (on the top or bottom)."
+            self.message = "Cannot exceed the 5x5 play space."
             return 3
         else:  # determine whether there's a valid adjacent suit.
             for ncol, nrow in self.four_neighbors(col, row):
                 nterrain = self.get_cell_terrain(ncol, nrow)
                 if nterrain == square.get_terrain() or nterrain == "wild":
+                    self.message = ""
                     return 0
+            self.message = "Can't place tile without adjacent matching territory."
             return 4
 
-    def is_tile_valid(self, col, row, tile):
+    def is_tile_valid(self, col, row, tile, chess_indexed = False):
         """
         Returns a 1 if the Tile is valid at the given cell;
         otherwise, returns a 0.
@@ -225,18 +228,23 @@ class Board(Grid):
         The location of tile.get_square2 adjacent to square1,
         based on tile.get_direction
 
-        If tile is not valid, sets self.message with the reason."""
+        If tile is not valid, sets self.message with the reason/s."""
+        if chess_indexed:
+            col, row = self._chess_indexed(col, row)
+
         s1, s2 = tile
         col2, row2 = self._square2_coords(col, row, tile)
         s1invalid = self.is_square_invalid(col, row, s1)
+        mssg = self.message
         s2invalid = self.is_square_invalid(col2, row2, s2)
+        mssg += f"\n{self.message}"
+        self.message = mssg
         if not s1invalid and not s2invalid:
             # Either square is a valid placement.
             return 1
         elif (not s1invalid or not s2invalid) \
                 and (s1invalid == 4 or s2invalid == 4):
             # One square is valid, and the other is over an empty space.
-            # TODO But couldn't one square be valid for both these conditions?
             return 1
         else:
             # The tile cannot be placed at the chosen location

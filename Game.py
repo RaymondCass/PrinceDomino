@@ -11,29 +11,57 @@ class Game:
     Randomized deck or standard?
 
     Passes these along to Table. Table creates the appropriately configured table"""
-    def __init__(self, players=[], deck_type = 1, center_kingdom = 0, full_kingdom = 0):
+    def __init__(self, players=[], deck_type = 1, center_kingdom = 0, full_kingdom = 0, grid_size = 5):
         self.player_count = len(players)
         for name in players:
-            Player(name)
+            Player(name, grid_size = grid_size) #default game is 5x5 grid
         self.center_kingdom = center_kingdom
         self.full_kingdom = full_kingdom
 
-        deck = Tiles.Deck(deck_type) #deck_type is 1 (standard) by default
-        if self.player_count == 2:
-            pass #todo halve the deck
-        self.table = Table(deck)
+        deck = Tiles.Deck(deck_type)
+        deck.shuffle()#deck_type is 1 (standard) by default
 
-        #Randomize the player order for the first turn
+        #Each round (except for round 0), a player places a tile on their board.
+        #Thus, the size of the player's board (and how many tiles would fit on it)
+        # determines how many rounds there will be
+        self.number_of_rounds = (pow(grid_size, 2) - 1) // 2
+        tiles_needed_in_deck = self.number_of_rounds * self.player_count
+        
+        # A 2 player game has half as many rounds, because each player takes 2 turns per round
+        if self.player_count == 2:
+            self.number_of_rounds //= 2
+            
+        if False: #toggle to shorten game length, for testing
+            self.number_of_rounds = 1
+
+        self.current_round = 0
+        self.current_turn = 0
+
+        #Remove excess tiles from the deck
+        excess_tiles = len(deck) - tiles_needed_in_deck
+        if self.player_count == 3:
+            # todo 3p handling
+            pass #not for 3 players (until I fix those rules)
+        else:
+            self.discard = deck.deal_tile(excess_tiles)
+            print(f"Removing {excess_tiles} tiles for a {self.player_count}-player game, "
+                  f"leaving {len(deck)} in the deck")
+
+
+
+        #set up the table
+        self.table = Table(deck)
+        self.table.advance_tiles()
+        # Randomize the player order for the first turn
         self.table.set_current_player_pieces(Player.random_order())
 
-        #These three parameters define how progressed the game is.
-        self.current_round = 0 #put the round logic in the Game class
-        self.current_tile_id = 0 #This is 0, 1, 2, or 3 depending on the tile.
-            #when it rolls over to 4, it triggers a round advancement (maybe game end?)
-        # todo length of game should depend on deck size
-        self.final_round = 2
+
+
+
+
         self.game_is_not_over = 1
 
+        #These parameters allow for undoing a turn
         self.temp_board = None
         self.temp_future_player_pieces = None
         self.create_save_point()
@@ -46,14 +74,17 @@ class Game:
 
 
     def get_current_player(self):
-        current_player = self.table.get_current_player_pieces()[self.current_tile_id]
+        """Uses self.current_turn as an index for table.current_player_pieces
+        Whichever player is at the indexed position, it is their turn.
+        Returns that player."""
+        current_player = self.table.current_player_pieces[self.current_turn]
         return current_player
 
     def get_current_tile(self):
         """Returns the current tile
         Note - tiles also denote player order in Princedomino,
         So the current tile indicates whose turn it is."""
-        current_tile = self.table.get_current_market()[self.current_tile_id]
+        current_tile = self.table.current_market[self.current_turn]
         return current_tile
 
 
@@ -68,7 +99,7 @@ class Game:
         else:
             return 0
 
-    def place_new_tile(self, coord):
+    def try_to_place_tile(self, coord):
         """Attempts to place the current tile at the specified coordinate
         Current Tile and Current Player are determined by self.current_tile_id.
 
@@ -78,8 +109,14 @@ class Game:
         """
         current_tile, current_player = self.get_current_tile(), self.get_current_player()
         col, row = coord[:1], coord[1:]
-        current_player.board.place_tile(col, row, current_tile, True)
-        return (1, "")
+
+        tile_valid = current_player.board.is_tile_valid(col, row, current_tile, True)
+        mssg = current_player.board.message
+        if tile_valid:
+            current_player.board.place_tile(col, row, current_tile, True)
+            return (1, "")
+        elif not tile_valid:
+            return (0, f"\n'{coord}' not valid: {mssg}")
         pass
 
     def create_save_point(self):
@@ -101,31 +138,38 @@ class Game:
 
     def revert_to_save_point(self):
         """Resets the game state to where it was at the start of the round, if possible"""
-        self.get_current_player().set_board(self.temp_board)
+        self.get_current_player().set_board(copy.deepcopy(self.temp_board))
         self.table.set_future_player_pieces(self.temp_future_player_pieces)
         return
 
 
     def next_turn(self):
         """Increments the turn, and returns 1 unless the game is over"""
-        self.current_tile_id += 1
-        if self.current_tile_id == 4: # Check to see whether all 4 tiles have had a turn
+        self.current_turn += 1
+        if self.current_turn == 4: # Check to see whether all 4 tiles have had a turn
+            #todo 3p handling
             self._advance_round() # If yes, then advance to the next round.
         self.create_save_point()
         return self.game_is_not_over
 
     def _advance_round(self):
         self.current_round += 1
-        if self.current_round == self.final_round:
+        if self.current_round == self.number_of_rounds:
             print("This is the start of the last round")
-        if self.current_round > self.final_round:
+        if self.current_round > self.number_of_rounds:
             self.game_is_not_over = 0
             return
 
-        self.current_tile_id = 0
-        self.table.advance_tiles()
-        self.table.replace_future_market(self.current_round == self.final_round)
+        self.current_turn = 0
+        self.table.advance_tiles(self.current_round == self.number_of_rounds)
         #unless it's the last round
+
+    def score_boards(self):
+        scores = {}
+        for player in Player.get_all_players():
+            score = player.board.score_board(self.center_kingdom, self.full_kingdom)
+            scores[player] = score
+        return scores
 
 
 class Player:
@@ -138,7 +182,7 @@ class Player:
     players = {}
     player_count = 0
 
-    def __init__(self, player_name, board = None):
+    def __init__(self, player_name, board = None, grid_size = 5):
 
         #Each player has a unique id.
         self.handle = player_name
@@ -151,7 +195,7 @@ class Player:
             assert isinstance(board, Board.Board), 'Provided boards must be an instance of the Board class'
             self.board = board
         else:
-            self.board = Board.Board()
+            self.board = Board.Board(grid_size + 2, grid_size + 2)
 
     @classmethod
     def get_all_players(cls):
@@ -204,15 +248,11 @@ class Table:
     """
     def __init__(self, deck):
         self.deck = deck
-        self.deck.shuffle()
 
         self.current_market = (None, None, None, None)
         self.current_player_pieces = (None, None, None, None)
         self.future_market = (None, None, None, None)
         self.future_player_pieces = (None, None, None, None)
-
-        self.replace_future_market()
-
 
     def __str__(self):
         playstate = ""
@@ -221,12 +261,16 @@ class Table:
         return playstate + "\n"
 
 
-    def advance_tiles(self):
+    def advance_tiles(self, last_round = 0):
+        """ Advances the board state for the next round.
+
+        'Slides' the future tiles and player markers into the current piece position,
+        Then Deals 4 new tiles."""
+        #Moves future pieces to the current place
         self.current_market = self.future_market
         self.current_player_pieces = self.future_player_pieces
 
-
-    def replace_future_market(self, last_round = 0):
+        # Replaces the future market with new tiles
         self.future_player_pieces = (None, None, None, None)
         if last_round: #On the last round, don't draw new tiles (would probably lead to an empty-deck error)
             self.future_market = (None, None, None, None)
@@ -236,18 +280,6 @@ class Table:
         self.future_market = tuple(new_market)
         return
 
-    def get_current_market(self):
-        return self.current_market
-
-    def get_future_market(self):
-        return self.future_market
-
-    def set_future_market(self, new_future_market):
-        self.future_market = new_future_market
-
-
-    def get_current_player_pieces(self):
-        return self.current_player_pieces
 
     def set_current_player_pieces(self, player_order):
         if len(player_order) == 3:
