@@ -37,16 +37,31 @@ class Play:
 
 
     def gather_starting_information(self):
-        #self.player_count = self._get_input_integer("How many players? (2-4)", 2, 4)
+        deck_type, center_kingdom, full_kingdom, grid_size = 1, 0, 0, 5
+
         self.message = "How many players?"
         player_count = self._ask_for_input_integer("(2-4)", 2, 4)
         self.message = "How should I call you?"
         player_names=[]
         for player in range(player_count):
             player_names.append(self._ask_for_input_string(f"Player {player + 1}:", default=f"Player {player + 1}"))
-        self.message = "Enable optional scoring?"
-        self._ask_for_input_string("(Not yet implemented)")
-        self.game = Game.Game(player_names)
+        self.message = "Would you like to see the additional scoring options? (These are not enabled by default)"
+
+        yes_no_to_bool = {"y": True, "Y": True, "n": False, "N": False}
+        opt_scoring = self._ask_for_input_string("(Y/N)", permitted_strings=["y","Y","n","N"], default = "N")
+        if yes_no_to_bool[opt_scoring]:
+            self.message = "Enable center kingdom? (Score 10 points if your castle/'wild' is in the center of your board)"
+            center_kingdom = self._ask_for_input_string("(Y/N)", permitted_strings=["y", "Y", "n", "N"], default="No")
+            center_kingdom = yes_no_to_bool[center_kingdom]
+
+            self.message = f"Enable full kingdom? (Score 5 points if your {grid_size}x{grid_size} grid is completely filled in)"
+            full_kingdom = self._ask_for_input_string("(Y/N)", permitted_strings=["y","Y","n","N"], default = "No")
+            full_kingdom = yes_no_to_bool[full_kingdom]
+
+        self.game = Game.Game(player_names,
+                              center_kingdom = center_kingdom,
+                              full_kingdom = full_kingdom,
+                              grid_size = 5)
         return
 
     def begin_playing(self):
@@ -324,6 +339,8 @@ class Play:
         scores = self.game.score_boards()
         winner = max(scores, key=lambda score: scores[score][0])
         game_visualization += "\nHere are the scores:"
+
+
         for player in scores:
             player_score = scores[player]
 

@@ -11,7 +11,7 @@ class Game:
     Randomized deck or standard?
 
     Passes these along to Table. Table creates the appropriately configured table"""
-    def __init__(self, players=[], deck_type = 1, center_kingdom = 0, full_kingdom = 0, grid_size = 5):
+    def __init__(self, players=[], deck_type = 1, center_kingdom = False, full_kingdom = False, grid_size = 5):
         self.player_count = len(players)
         for name in players:
             Player(name, grid_size = grid_size) #default game is 5x5 grid

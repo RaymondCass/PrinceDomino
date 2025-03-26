@@ -318,7 +318,7 @@ class Board(Grid):
             self.edges["top"] -= 1
             self.edges["bottom"] -= 1
 
-    def score_board(self, center_kingdom = 0, full_kingdom = 0):
+    def score_board(self, center_kingdom = False, full_kingdom = False):
         """return the score of the board. Scoring works as follows:
 
         Count up connected regions. Multiply the number of tiles in a connected region
@@ -330,7 +330,7 @@ class Board(Grid):
                     Score 5 points if your 5x5 grid contains no empty spaces.
         """
         score = dict.fromkeys(Tiles.SQUARESET, 0)
-        score["empty"] = 0
+        score["empty_spaces"] = 0
 
         # Create a secondary Grid that tracks which tiles I've already scored.
         # The borders are automatically set to 'scored'
@@ -344,10 +344,10 @@ class Board(Grid):
             scored_squares.set_full(-1, row)
 
         # Iterate through all cells in the scored_squares Grid
-        for tile in scored_squares:
-            if tile[2]: # pass on tiles that have been scored (value = 1)
+        for square in scored_squares:
+            if square[2]: # pass on tiles that have been scored (value = 1)
                 continue
-            col, row = tile[0], tile[1] # When encountering an unscored territory, score it
+            col, row = square[0], square[1] # When encountering an unscored territory, score it
             num_connected, crowns, terrain = self._score_territory(col, row, scored_squares)
 
             # Multiply num_connected by num_crowns, add that to total score,
@@ -359,9 +359,15 @@ class Board(Grid):
         if center_kingdom:
             if self.get_cell_terrain(self.grid_center[0],self.grid_center[1]) == 'wild':
                 score["centered"] = 10
+            else:
+                score["centered"] = 0
         if full_kingdom:
-            if score["empty"] == 1:
-                score["full"] = 5
+            if score["empty_spaces"] == 0:
+                score["full_kingdom"] = 5
+            elif score["empty_spaces"] >= 0:
+                score["full_kingdom"] = 0
+        del score["empty_spaces"]
+
 
         # Tally the score
         total_score = sum(score.values())
@@ -385,7 +391,7 @@ class Board(Grid):
         scored_squares.set_full(col, row)
         terrain = self.get_cell_terrain(col, row)
         if terrain == None or terrain == "wild": # If empty or wild
-            return (1, 0, "empty") # Exit the function
+            return (1, 1, "empty_spaces") # Exit the function
 
         num_connected = 1
         crowns = self.get_cell_crowns(col, row)
