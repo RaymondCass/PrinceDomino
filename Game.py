@@ -12,11 +12,17 @@ class Game:
 
     Passes these along to Table. Table creates the appropriately configured table"""
     def __init__(self, players=[], deck_type = 1, center_kingdom = False, full_kingdom = False, grid_size = 5):
+
         self.player_count = len(players)
+
+        self.num_player_pieces = self.player_count
+        if self.num_player_pieces == 2:
+            self.num_player_pieces *= 2
+
         for name in players:
             Player(name, grid_size = grid_size) #default game is 5x5 grid
-        self.center_kingdom = center_kingdom
-        self.full_kingdom = full_kingdom
+
+        self.center_kingdom, self.full_kingdom = center_kingdom, full_kingdom
 
         deck = Tiles.Deck(deck_type)
         deck.shuffle()#deck_type is 1 (standard) by default
@@ -32,32 +38,22 @@ class Game:
             self.number_of_rounds //= 2
             
         if False: #toggle to shorten game length, for testing
-            self.number_of_rounds = 1
+            self.number_of_rounds = 2
 
         self.current_round = 0
         self.current_turn = 0
 
         #Remove excess tiles from the deck
         excess_tiles = len(deck) - tiles_needed_in_deck
-        if self.player_count == 3:
-            # todo 3p handling
-            pass #not for 3 players (until I fix those rules)
-        else:
-            self.discard = deck.deal_tile(excess_tiles)
-            print(f"Removing {excess_tiles} tiles for a {self.player_count}-player game, "
-                  f"leaving {len(deck)} in the deck")
-
-
+        self.discard = deck.deal_tile(excess_tiles)
+        print(f"Removing {excess_tiles} tiles for a {self.player_count}-player game, "
+              f"leaving {len(deck)} in the deck")
 
         #set up the table
-        self.table = Table(deck)
+        self.table = Table(deck, self.num_player_pieces)
         self.table.advance_tiles()
-        # Randomize the player order for the first turn
-        self.table.set_current_player_pieces(Player.random_order())
-
-
-
-
+        # Randomize the player order for the first turn. If 2 players, each player gets 2 turns in snake formation
+        self.table.current_player_pieces = Player.random_order(snake = Player.player_count == 2)
 
         self.game_is_not_over = 1
 
@@ -89,12 +85,12 @@ class Game:
 
 
     def choose_new_tile(self, tile_id):
-        future_order = self.table.get_future_player_pieces()
+        future_order = self.table.future_player_pieces
         future_order = list(future_order)
         if not future_order[tile_id-1]: #if no one has chosen that tile
             # the player successfully chooses the tile
             future_order[tile_id-1] = self.get_current_player()
-            self.table.set_future_player_pieces(tuple(future_order))
+            self.table.future_player_pieces = tuple(future_order)
             return 1
         else:
             return 0
@@ -133,21 +129,20 @@ class Game:
         current_player = self.get_current_player()
         if current_player:
             self.temp_board = copy.deepcopy(current_player.board)
-        self.temp_future_player_pieces = self.table.get_future_player_pieces()
+        self.temp_future_player_pieces = self.table.future_player_pieces
         return
 
     def revert_to_save_point(self):
         """Resets the game state to where it was at the start of the round, if possible"""
         self.get_current_player().set_board(copy.deepcopy(self.temp_board))
-        self.table.set_future_player_pieces(self.temp_future_player_pieces)
+        self.table.future_player_pieces = self.temp_future_player_pieces
         return
 
 
     def next_turn(self):
         """Increments the turn, and returns 1 unless the game is over"""
         self.current_turn += 1
-        if self.current_turn == 4: # Check to see whether all 4 tiles have had a turn
-            #todo 3p handling
+        if self.current_turn == self.num_player_pieces: # Check to see whether all tiles have had a turn
             self._advance_round() # If yes, then advance to the next round.
         self.create_save_point()
         return self.game_is_not_over
@@ -195,7 +190,7 @@ class Player:
             assert isinstance(board, Board.Board), 'Provided boards must be an instance of the Board class'
             self.board = board
         else:
-            self.board = Board.Board(grid_size + 2, grid_size + 2)
+            self.board = Board.Board(grid_size, grid_size)
 
     @classmethod
     def get_all_players(cls):
@@ -211,13 +206,13 @@ class Player:
         return cls.players[id]
 
     @classmethod
-    def random_order(cls):
+    def random_order(cls, snake = False):
         random_order = cls.get_all_players()
         random.shuffle(random_order)
-        if cls.player_count == 2:
-            two_player_order = list(random_order)
-            two_player_order.reverse()
-            random_order += two_player_order #For two players, the order is a "snake." Either 0110, or 1001
+        if snake:
+            reverse_order = list(random_order)
+            reverse_order.reverse()
+            random_order += reverse_order #For two players, the order is a "snake." Either 0110, or 1001
         return random_order
 
     @classmethod
@@ -246,13 +241,16 @@ class Table:
 
     Also contains the rules for the game.
     """
-    def __init__(self, deck):
+    def __init__(self, deck, num_player_pieces):
         self.deck = deck
 
-        self.current_market = (None, None, None, None)
-        self.current_player_pieces = (None, None, None, None)
-        self.future_market = (None, None, None, None)
-        self.future_player_pieces = (None, None, None, None)
+        self.num_player_pieces = num_player_pieces
+        self.empty_tuple = (None, ) * self.num_player_pieces
+
+        self.current_market = self.empty_tuple
+        self.current_player_pieces = self.empty_tuple
+        self.future_market = self.empty_tuple
+        self.future_player_pieces = self.empty_tuple
 
     def __str__(self):
         playstate = ""
@@ -271,32 +269,14 @@ class Table:
         self.current_player_pieces = self.future_player_pieces
 
         # Replaces the future market with new tiles
-        self.future_player_pieces = (None, None, None, None)
+        self.future_player_pieces = self.empty_tuple
         if last_round: #On the last round, don't draw new tiles (would probably lead to an empty-deck error)
-            self.future_market = (None, None, None, None)
+            self.future_market = self.empty_tuple
             return
-        new_market = [self.deck.deal_tile() for n in range(4)]
+        new_market = [self.deck.deal_tile() for n in range(self.num_player_pieces)]
         new_market.sort(key=lambda x: x.value) # sort the tiles by their value
         self.future_market = tuple(new_market)
         return
-
-
-    def set_current_player_pieces(self, player_order):
-        if len(player_order) == 3:
-            player_order.append(None)
-        self.current_player_pieces = tuple(player_order)
-        """Places player pieces in the current market
-        (In effect, this defines the player order for the current round)"""
-
-
-
-        #deck_type 1 is standard
-
-    def get_future_player_pieces(self):
-        return self.future_player_pieces
-
-    def set_future_player_pieces(self, player_pieces):
-        self.future_player_pieces = player_pieces
 
 
 

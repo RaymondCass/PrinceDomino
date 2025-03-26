@@ -25,7 +25,7 @@ class Play:
         self.setup = False
         self.begin_playing()
 
-        self.display_scores()
+        self.display_scores(debug=True)
 
 
     def __str__(self):
@@ -38,6 +38,7 @@ class Play:
 
     def gather_starting_information(self):
         deck_type, center_kingdom, full_kingdom, grid_size = 1, 0, 0, 5
+        yes_no_to_bool = {"y": True, "Y": True, "n": False, "N": False}
 
         self.message = "How many players?"
         player_count = self._ask_for_input_integer("(2-4)", 2, 4)
@@ -45,9 +46,8 @@ class Play:
         player_names=[]
         for player in range(player_count):
             player_names.append(self._ask_for_input_string(f"Player {player + 1}:", default=f"Player {player + 1}"))
-        self.message = "Would you like to see the additional scoring options? (These are not enabled by default)"
 
-        yes_no_to_bool = {"y": True, "Y": True, "n": False, "N": False}
+        self.message = "Would you like to see the additional scoring options? (These are not enabled by default)"
         opt_scoring = self._ask_for_input_string("(Y/N)", permitted_strings=["y","Y","n","N"], default = "N")
         if yes_no_to_bool[opt_scoring]:
             self.message = "Enable center kingdom? (Score 10 points if your castle/'wild' is in the center of your board)"
@@ -165,11 +165,14 @@ class Play:
 
         new_tiles = self.game.table.future_market
         if not new_tiles[0]:
+            #on the last turn, skip this step
             return 0
 
-        selection = self._ask_for_input_integer(
-            f"(1, 2, 3, or 4)",
-            1, 4)
+        # Creates an input prompt in the form of (1, 2, 3, 4 ..., or n), based on the number of tiles available to choose
+        prompt = [str(i) for i in range(1, self.game.num_player_pieces + 1)]
+        prompt = f"({', '.join(prompt[:-1]) + ', or ' + prompt[-1] if self.game.num_player_pieces> 1 else prompt[0]})"
+
+        selection = self._ask_for_input_integer(prompt,1, self.game.num_player_pieces)
         allowed = self.game.choose_new_tile(selection)
         if not allowed:
             self.error_message += "\nOops. That tile has already been chosen. Try again"
@@ -263,7 +266,7 @@ class Play:
             #Build a list of the future market and player selections
             future_market = list(self.game.table.future_market)
             future_market.insert(0, "Future Market")
-            future_pieces = list(self.game.table.get_future_player_pieces())
+            future_pieces = list(self.game.table.future_player_pieces)
             future_pieces.insert(0, None)
 
             for line_number in range(len(future_market)): # Zip the market row together

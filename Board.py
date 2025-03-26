@@ -63,10 +63,13 @@ class Board(Grid):
                 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W',
                 'X', 'Y', 'Z']
 
-    def __init__(self, grid_height=7, grid_width=7):
+    def __init__(self, grid_height=5, grid_width=5):
         """"""
         # create a board, which acts as a grid
-        super(Board, self).__init__(grid_height, grid_width)
+        super(Board, self).__init__(grid_height + 2, grid_width + 2)
+        # (While the play space are equal to grid height/width,
+        # the +2 provides a margin and helps with the centering method.
+
         self.grid_center = (self.grid_width // 2, self.grid_height // 2)
         self.grid[self.grid_center[0]][self.grid_center[1]] = 'wild'
         self.message = "All's good for now"
