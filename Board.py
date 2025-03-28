@@ -82,6 +82,7 @@ class Board(Grid):
         for y in self.y_label:
             for x in self.x_label:
                 self.valid_coordinates.append(x+str(y))
+                self.valid_coordinates.append(str(y)+x)
         # TODO the edges assumes a 7x7 play space, but should be using the grid height, etc.
 
     def __str__(self):
@@ -333,7 +334,7 @@ class Board(Grid):
                     Score 5 points if your 5x5 grid contains no empty spaces.
         """
         score = dict.fromkeys(Tiles.SQUARESET, 0)
-        score["empty_spaces"] = 0
+        score["empty_spaces"] = -1
 
         # Create a secondary Grid that tracks which tiles I've already scored.
         # The borders are automatically set to 'scored'
@@ -369,11 +370,11 @@ class Board(Grid):
                 score["full_kingdom"] = 5
             elif score["empty_spaces"] >= 0:
                 score["full_kingdom"] = 0
-        del score["empty_spaces"]
 
-
+        #todo remove empty_spaces from the scoring array (mostly there for debugging)
+        #del score["empty_spaces"]
         # Tally the score
-        total_score = sum(score.values())
+        total_score = sum(score.values()) - score["empty_spaces"]
 
         return total_score, score
 
