@@ -1,7 +1,7 @@
 import unittest
 
-from Tiles import Deck, Square
-from Board import Board
+from Princedomino.Tiles import Deck, Square
+from Princedomino.Board import Board
 
 class TestBoard(unittest.TestCase):
     def test_set_cell(self):

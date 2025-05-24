@@ -1,9 +1,6 @@
-from dataclasses import field
-from time import time_ns
-
-import Game
+from Princedomino import Game
 import traceback
-import Tiles
+from Princedomino import Tiles
 
 class Play:
     """This class runs a full game of PrinceDomino in the command line.

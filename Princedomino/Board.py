@@ -1,7 +1,7 @@
 """
 This is for board class for Princedomino
 """
-import Tiles
+from Princedomino import Tiles
 
 
 class Grid:
@@ -409,23 +409,3 @@ class Board(Grid):
                     crowns += add_crowns
                     # TODO write a test for this ... I'm not sure if my recursive scorring worked
         return num_connected, crowns, terrain
-
-    def draw(self):
-        """Draws the board in one of 4 quadrants"""
-        pass
-
-
-
-
-# Empty squares should have the concept of "validity"
-# A check for validity happens as follows:
-# Poll two squares at once.
-# 1. Both must be empty (One of the tiles is already occupied!)
-# 2. Neither can be a "border square" - with an idx of 0 or "col_width/height (-1)"] (This move would exceed 5x5 grid)
-# 3. Check for adjacency - one of the adjacent tiles must be of the same "suit" or "wild"(No adjacent matching suit)
-
-# if it's all valid, prompt for confirmation. If yes, write it to the grid
-# if it's not valid, return a message for which validity requirement isn't met.
-
-if __name__ == "__main__":
-    pass

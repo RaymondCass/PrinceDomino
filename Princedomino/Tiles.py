@@ -173,7 +173,7 @@ class Deck:
         https://github.com/RuPaulsDataRace/Kingdomino-For-Queens
         """
         standeck = []
-        with open("./Kingdomino-For-Queens/kingdomino.csv", "r") as f:
+        with open("Princedomino/Kingdomino-For-Queens/kingdomino.csv", "r") as f:
             lines = f.readlines()
         dominos = [d.split(",") for d in lines[1:]]
         for domino in dominos:

@@ -1,6 +1,6 @@
 import copy
-import Board
-import Tiles
+from Princedomino import Board
+from Princedomino import Tiles
 import random
 
 
@@ -10,7 +10,7 @@ class Game:
 
     Player names and boards are stored in Player objects,
     while cards in play and turn order are stored in a Table object."""
-    def __init__(self, players: list, deck_type = 1, center_kingdom = False, full_kingdom = False, grid_size = 5):
+    def __init__(self, players: list = ["Player 1", "Player 2"], deck_type = 1, center_kingdom = False, full_kingdom = False, grid_size = 5):
 
         self.player_count = len(players)
 

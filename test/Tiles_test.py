@@ -1,5 +1,5 @@
 import unittest
-from Tiles import Tile, Deck, Square
+from Princedomino.Tiles import Tile, Deck, Square
 
 
 class TestTile(unittest.TestCase):
@@ -135,5 +135,5 @@ class TestDeck(unittest.TestCase):
         # Test that there are 48 numbered cards (with no repeat numbers)
         self.assertEqual(sorted([c.get_value() for c in d.deck]), [n + 1 for n in range(48)])
 
-# suite = unittest.TestLoader().loadTestsFromTestCase(TestStringMethods)
-# unittest.TextTestRunner(verbosity=2).run(suite)
+suite = unittest.TestLoader().loadTestsFromTestCase(TestTile)
+unittest.TextTestRunner(verbosity=2).run(suite)
