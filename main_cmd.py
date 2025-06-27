@@ -1,6 +1,7 @@
 from Princedomino import Game
-import traceback
 from Princedomino import Tiles
+import traceback
+
 
 class Play:
     """This class runs a full game of PrinceDomino in the command line.
@@ -164,7 +165,7 @@ class Play:
             except ValueError:
                 self.temp_messages.append("Error: Invalid input!")
 
-    def _ask_for_input_string(self, prompt, max_length=10, permitted_strings=[], default=None):
+    def _ask_for_input_string(self, prompt, max_length=10, permitted_strings: list = [], default=None):
         """Helper method that generates a prompt for a string input.
         The user is presented with prompt, then must input an integer.
         Maximum length is enforced, and is 10 characters by default.
@@ -186,7 +187,7 @@ class Play:
                     if usr_input in permitted_strings:
                         return usr_input
                     else:
-                        self.temp_messages.append("I don't understand that response.")
+                         self.temp_messages.append("I don't understand that response.")
 
                 else:
                     return usr_input

@@ -2,6 +2,7 @@ import copy
 from Princedomino import Board
 from Princedomino import Tiles
 import random
+from Princedomino.Defaults import PLAYERS, DECK_TYPE, CENTER_KINGDOM, FULL_KINGDOM, GRID_SIZE
 
 
 class Game:
@@ -10,10 +11,10 @@ class Game:
 
     Player names and boards are stored in Player objects,
     while cards in play and turn order are stored in a Table object."""
-    def __init__(self, players: list = ["Player 1", "Player 2"], deck_type = 1, center_kingdom = False, full_kingdom = False, grid_size = 5):
+    def __init__(self, players: list = PLAYERS, deck_type = DECK_TYPE, center_kingdom = CENTER_KINGDOM, full_kingdom = FULL_KINGDOM, grid_size = GRID_SIZE):
 
+        Player.new_game()
         self.player_count = len(players)
-
         self.num_player_pieces = self.player_count
         if self.num_player_pieces == 2:
             self.num_player_pieces *= 2
@@ -259,11 +260,13 @@ class Player:
         if type(new_board) == Board.Board:
             self.board = new_board
 
+    @classmethod
     def new_game(self):
         """If I add the ability to play multiple games in a row
         I might need to purge the Player class to prevent 'ghost' players
         """
-        pass
+        Player.players = {}
+        Player.player_count = 0
 
 
 class Table:
